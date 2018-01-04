@@ -3,22 +3,25 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	cache "github.com/patrickmn/go-cache"
+	goCache "github.com/patrickmn/go-cache"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 	hercules "gopkg.in/src-d/hercules.v3"
 )
 
-var iCache = cache.New(time.Hour, 10*time.Minute)
+var cache = goCache.New(time.Hour, 10*time.Minute)
 
 func main() {
 	r := chi.NewRouter()
@@ -94,7 +97,7 @@ type burndownResponse struct {
 }
 
 func burndownCached(uri string) (response, error) {
-	v, ok := iCache.Get(uri)
+	v, ok := cache.Get(uri)
 	if ok {
 		return v.(response), nil
 	}
@@ -103,13 +106,19 @@ func burndownCached(uri string) (response, error) {
 	if err != nil {
 		return response{}, err
 	}
-	iCache.Set(uri, res, cache.DefaultExpiration)
+	cache.Set(uri, res, goCache.DefaultExpiration)
 
 	return res, nil
 }
 
 func burndown(uri string) (response, error) {
-	// FIXME is it possible to check size before cloning?
+	if err := validateRepo(uri); err != nil {
+		return response{
+			Status: http.StatusBadRequest,
+			Error:  err.Error(),
+		}, nil
+	}
+
 	backend := memory.NewStorage()
 	cloneOptions := &git.CloneOptions{URL: uri}
 	repository, err := git.Clone(backend, nil, cloneOptions)
@@ -140,4 +149,39 @@ func burndown(uri string) (response, error) {
 			Data:  r.GlobalHistory,
 		},
 	}, nil
+}
+
+const repoSizeLimit = 102400 // kb
+
+func validateRepo(uri string) error {
+	if !strings.HasPrefix(uri, "https://github.com/") {
+		return errors.New("unsupported provider: only github is supported for now")
+	}
+	apiURI := strings.Replace(uri, "https://github.com/", "https://api.github.com/repos/", 1)
+	resp, err := http.Get(apiURI)
+	if err != nil {
+		return fmt.Errorf("can't access github api: %s", err)
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return errors.New("repository not found")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("can't access github api: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("can't read github api response: %s", err)
+	}
+	var r struct{ Size int }
+	if err := json.Unmarshal(b, &r); err != nil {
+		return fmt.Errorf("can't parse github api response: %s", err)
+	}
+	if r.Size == 0 {
+		return errors.New("incorrect repository")
+	}
+	if r.Size > repoSizeLimit {
+		return errors.New("repository is too big")
+	}
+	return nil
 }
