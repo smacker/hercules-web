@@ -12,13 +12,23 @@
       </div>
     </div>
 
-    <Burndown v-if="data" :begin="data.begin" :end="data.end" :data="data.data" />
+    <Responsive v-if="data" class="graph">
+      <Burndown
+        slot-scope="props"
+        :width="props.width"
+        :height="props.height"
+        :begin="data.begin"
+        :end="data.end"
+        :data="data.data"
+      />
+    </Responsive>
   </div>
 </template>
 
 
 <script>
 import Spinner from '@/components/Spinner';
+import Responsive from '@/components/Responsive';
 import Burndown from '@/components/Burndown';
 
 const hercules = window.hercules || {};
@@ -27,6 +37,7 @@ const apiHost = hercules.apiHost || 'http://127.0.0.1:8080';
 export default {
   components: {
     Spinner,
+    Responsive,
     Burndown
   },
 
@@ -82,6 +93,12 @@ export default {
   height: 5em;
   padding: 1.5em 0 2.5em;
   margin-bottom: 10px;
+}
+
+.graph {
+  min-width: 600px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .error {
