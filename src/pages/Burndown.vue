@@ -35,6 +35,8 @@ const hercules = window.hercules || {};
 const apiHost = hercules.apiHost || 'http://127.0.0.1:8080';
 
 export default {
+  props: ['repo'],
+
   components: {
     Spinner,
     Responsive,
@@ -47,12 +49,6 @@ export default {
       data: null,
       error: null
     };
-  },
-
-  computed: {
-    repo() {
-      return this.$route.params.repo;
-    }
   },
 
   created() {

@@ -14,7 +14,8 @@ export default new Router({
     },
     {
       path: '/:repo(.+)/burndown',
-      component: Burndown
+      component: Burndown,
+      props: true
     }
   ]
 });
