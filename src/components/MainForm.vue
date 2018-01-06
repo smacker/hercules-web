@@ -8,11 +8,13 @@
           placeholder="ex: github.com/src-d/go-git"
           v-model="repo"
       >
-      <input class="main-form__submit" type="submit" value="Code Burndown!">
+      <input class="main-form__submit" type="submit" value="Code Burndown!" :disabled="!repo">
   </form>
 </template>
 
 <script>
+const httpsRegex = new RegExp('^https?://');
+
 export default {
   props: { onSubmit: Function },
 
@@ -22,6 +24,11 @@ export default {
 
   methods: {
     submit() {
+      if (!this.repo) {
+        return;
+      }
+      this.repo = this.repo.replace(httpsRegex, '');
+
       this.onSubmit(this.repo);
     }
   }
@@ -30,11 +37,6 @@ export default {
 
 
 <style>
-.main-form {
-  width: 500px;
-  margin: 50px auto;
-}
-
 .main-form__input {
   display: block;
   width: 100%;
@@ -67,6 +69,11 @@ export default {
 
 .main-form__submit:hover {
   background: #90feb5;
+}
+
+.main-form__submit:disabled {
+  background: #444;
+  cursor: default;
 }
 </style>
 

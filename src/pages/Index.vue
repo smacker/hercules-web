@@ -12,17 +12,17 @@ export default {
     MainForm
   },
 
-  data() {
-    return {
-      error: null
-    };
-  },
-
   methods: {
     submit(repo) {
-      // FIXME add simple validation
       this.$router.push({ path: `/${repo}/burndown` });
     }
   }
 };
 </script>
+
+<style scoped>
+.main-form {
+  width: 500px;
+  margin: 50px auto;
+}
+</style>
