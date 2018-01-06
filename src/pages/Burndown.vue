@@ -12,14 +12,22 @@
       </div>
     </div>
 
+    <div>
+      Mode: <select v-model="mode">
+        <option>raw</option>
+        <option>year</option>
+      </select>
+      </div>
+
     <Responsive v-if="data" class="graph">
       <Burndown
         slot-scope="props"
         :width="props.width"
         :height="props.height"
-        :begin="data.begin"
-        :end="data.end"
+        :begin="begin"
+        :end="end"
         :data="data.data"
+        :keys="data.keys"
       />
     </Responsive>
   </div>
@@ -30,6 +38,9 @@
 import Spinner from '@/components/Spinner';
 import Responsive from '@/components/Responsive';
 import Burndown from '@/components/Burndown';
+
+import math from 'mathjs';
+import { toYear } from '@/lib/matrix';
 
 const hercules = window.hercules || {};
 const apiHost = hercules.apiHost || 'http://127.0.0.1:8080';
@@ -46,9 +57,40 @@ export default {
   data() {
     return {
       loading: true,
-      data: null,
+      mode: 'raw',
+      serverData: null,
+      begin: null,
+      end: null,
       error: null
     };
+  },
+
+  computed: {
+    data() {
+      if (!this.serverData) {
+        return null;
+      }
+
+      switch (this.mode) {
+        case 'raw':
+          return {
+            data: this.serverData,
+            keys: math.range(0, this.serverData.length).toArray()
+          };
+
+        default:
+          const { keys, matrix } = toYear({
+            data: this.serverData,
+            begin: this.begin,
+            end: this.end
+          });
+
+          return {
+            data: math.transpose(matrix).toArray(),
+            keys
+          };
+      }
+    }
   },
 
   created() {
@@ -61,6 +103,7 @@ export default {
 
   methods: {
     fetchData() {
+      this.serverData = null;
       this.loading = true;
       this.error = null;
 
@@ -70,7 +113,9 @@ export default {
           if (json.error) {
             return Promise.reject(json.error);
           }
-          this.data = json.data;
+          this.serverData = json.data.data;
+          this.begin = json.data.begin;
+          this.end = json.data.end;
         })
         .catch(e => (this.error = e))
         .then(() => (this.loading = false));

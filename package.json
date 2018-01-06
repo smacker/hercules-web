@@ -5,14 +5,15 @@
   "author": "smacker <max@smacker.ru>",
   "private": true,
   "scripts": {
-    "dev":
-      "webpack-dev-server --inline --progress --config build/webpack.dev.conf.js",
+    "dev": "webpack-dev-server --inline --progress --config build/webpack.dev.conf.js",
     "start": "npm run dev",
     "lint": "eslint --ext .js,.vue src",
     "build": "node build/build.js"
   },
   "dependencies": {
     "d3": "^4.12.0",
+    "date-fns": "^1.29.0",
+    "mathjs": "^3.18.1",
     "vue": "^2.5.2",
     "vue-router": "^3.0.1"
   },
@@ -61,5 +62,9 @@
     "node": ">= 4.0.0",
     "npm": ">= 3.0.0"
   },
-  "browserslist": ["> 1%", "last 2 versions", "not ie <= 8"]
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
+  ]
 }

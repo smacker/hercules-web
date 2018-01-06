@@ -36,6 +36,10 @@ export default {
     height: {
       type: Number,
       default: 500
+    },
+    keys: {
+      type: Array,
+      required: true
     }
   },
 
@@ -61,16 +65,15 @@ export default {
     },
 
     // graph
-
-    keys() {
-      return d3.range(this.data.length);
-    },
-
     series() {
+      const keyIdx = this.keys.reduce((r, k, i) => {
+        r[k] = i;
+        return r;
+      }, {});
       var stack = d3
         .stack()
         .keys(this.keys)
-        .value((d, key) => d[key] || 0);
+        .value((d, key) => d[keyIdx[key]] || 0);
       return stack(
         this.data.map(row => {
           // mutation!!!
