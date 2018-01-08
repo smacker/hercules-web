@@ -139,7 +139,16 @@ func burndown(uri string) (response, error) {
 	if err != nil {
 		return response{}, err
 	}
-	r := results[burndownItem].(hercules.BurndownResult)
+	// it's super ugly, but hercules api isn't very friendly or I just didn't get it
+	var r hercules.BurndownResult
+	for li, v := range results {
+		if li == nil {
+			continue
+		}
+		if li.Name() == "Burndown" {
+			r = v.(hercules.BurndownResult)
+		}
+	}
 
 	return response{
 		Status: http.StatusOK,

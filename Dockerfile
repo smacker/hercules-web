@@ -8,7 +8,7 @@ RUN apk --update upgrade && \
 
 # install bblfsh go client deps
 # otherwise hercules installation will fail
-RUN go get gopkg.in/bblfsh/client-go.v2 && \
+RUN go get -d -v gopkg.in/bblfsh/client-go.v2 && \
     cd $GOPATH/src/gopkg.in/bblfsh/client-go.v2 && \
     make dependencies
 
@@ -18,11 +18,11 @@ RUN go get github.com/gogo/protobuf/proto && \
     go get github.com/gogo/protobuf/protoc-gen-gogo && \
     go get github.com/gogo/protobuf/gogoproto
 
-# install hercules dependencies (pinned version)
+# install hercules (pinned version)
 RUN mkdir -p $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
     git clone -n https://github.com/src-d/hercules.git $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
+    git checkout 1f59ecd8043bc131efb40f2a221318c0dc144c00 && \
     cd $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
-    git checkout e2f9ebffae4156df21fb876286f3315a929f1efd && \
     PATH=$PATH:$GOPATH/bin protoc --gogo_out=pb --proto_path=pb pb/pb.proto
 
 ADD . /go/src/hercules-web
