@@ -94,9 +94,10 @@ type response struct {
 }
 
 type burndownResponse struct {
-	Begin int64     `json:"begin"`
-	End   int64     `json:"end"`
-	Data  [][]int64 `json:"data"`
+	Begin   int64       `json:"begin"`
+	End     int64       `json:"end"`
+	Project [][]int64   `json:"project"`
+	People  [][][]int64 `json:"people"`
 }
 
 func burndownCached(uri string) (response, error) {
@@ -137,7 +138,11 @@ func burndown(uri string) (response, error) {
 	commits := pipeline.Commits()
 	burndownItem := hercules.Registry.Summon("Burndown")[0]
 	pipeline.DeployItem(burndownItem)
-	pipeline.Initialize(map[string]interface{}{"commits": commits})
+	pipeline.Initialize(map[string]interface{}{
+		"commits": commits,
+		// maybe move to another endpoint? but actually it's cheap enough compare to downloading repo
+		"Burndown.TrackPeople": true,
+	})
 	results, err := pipeline.Run(commits)
 	if err != nil {
 		return response{}, err
@@ -156,9 +161,10 @@ func burndown(uri string) (response, error) {
 	return response{
 		Status: http.StatusOK,
 		Data: burndownResponse{
-			Begin: commits[0].Author.When.Unix(),
-			End:   commits[len(commits)-1].Author.When.Unix(),
-			Data:  r.GlobalHistory,
+			Begin:   commits[0].Author.When.Unix(),
+			End:     commits[len(commits)-1].Author.When.Unix(),
+			Project: r.GlobalHistory,
+			People:  r.PeopleHistories,
 		},
 	}, nil
 }

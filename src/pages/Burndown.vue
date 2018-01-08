@@ -147,11 +147,11 @@ export default {
           if (json.error) {
             return Promise.reject(json.error);
           }
-          if (json.data.data.length < 2) {
+          if (json.data.project.length < 2) {
             return Promise.reject('Not enough data');
           }
 
-          this.serverData = json.data.data;
+          this.serverData = json.data.project;
           this.begin = json.data.begin;
           this.end = json.data.end;
           this.resample = chooseDefaultResampling(this.begin, this.end);
