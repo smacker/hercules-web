@@ -2,6 +2,8 @@
 
 > web ui for [hercules](https://github.com/src-d/hercules)
 
+![Project Burndown](docs/project-burndown.png?raw=true)
+
 ## Build
 
 ```
