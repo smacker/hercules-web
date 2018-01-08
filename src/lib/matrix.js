@@ -14,9 +14,7 @@ export function toMatrix(data) {
 
 export function interpolate(matrix, granularity, sampling) {
   const shape = matrix.size();
-
   const daily = math.zeros(shape[0] * granularity, shape[1] * sampling);
-  //const dailyShape = daily.size();
 
   for (let y = 0; y < shape[0]; y++) {
     for (let x = 0; x < shape[1]; x++) {
@@ -32,11 +30,7 @@ export function interpolate(matrix, granularity, sampling) {
         const k = matrix.get([y, x]) / startVal;
         const scale = (x + 1) * sampling - startIndex;
         math.range(y * granularity, (y + 1) * granularity).forEach(i => {
-          //console.log(i, startIndex - 1, daily.get([i, startIndex - 1]));
           const initial = daily.get([i, startIndex - 1]);
-          // if (isNaN(initial)) {
-          //   console.log([i, startIndex - 1]);
-          // }
           math.range(startIndex, (x + 1) * sampling).forEach(j => {
             const val = initial * (1 + (k - 1) * (j - startIndex + 1) / scale);
             daily.set([i, j], val);
@@ -117,30 +111,16 @@ export function interpolate(matrix, granularity, sampling) {
   return daily;
 }
 
-export function toYear({ begin, end, data }, granularity = 30, sampling = 30) {
-  begin = new Date(begin * 1000);
-  end = new Date(end * 1000);
-
-  // array of dates like:
-  // [24 Apr 2015, 1 Jan 2016, 1 Jan 2017, 1 Jan 2018, 30 Mar 2018]
-  const datesRange = [begin];
-  for (let year = begin.getFullYear() + 1; year <= end.getFullYear(); year++) {
-    datesRange.push(new Date(year, 0));
-  }
-  if (!isEqual(datesRange[datesRange.length - 1], end)) {
-    datesRange.push(end);
-  }
-
-  const delta = differenceInDays(end, begin);
-  const matrix = math.zeros(datesRange.length - 1, delta);
-
+function aggregate(datesRange, { begin, end, data }, granularity, sampling) {
   const daily = interpolate(
     math.transpose(toMatrix(data)),
     granularity,
     sampling
   );
-
   const dailyShape = daily.size();
+
+  const matrix = math.zeros(datesRange.length - 1, dailyShape[1]);
+
   datesRange.forEach((d, i) => {
     if (i === 0) {
       return;
@@ -156,9 +136,82 @@ export function toYear({ begin, end, data }, granularity = 30, sampling = 30) {
     }
     matrix.subset(math.index(i - 1, math.range(0, dailyShape[1])), val);
   });
+  return matrix;
+}
+
+const monthNames = {
+  0: 'Jan',
+  1: 'Feb',
+  2: 'Mar',
+  3: 'Apr',
+  4: 'May',
+  5: 'Jun',
+  6: 'Jul',
+  7: 'Aug',
+  8: 'Sep',
+  9: 'Oct',
+  10: 'Nov',
+  11: 'Dec'
+};
+
+export function toMonths(
+  { begin, end, data },
+  granularity = 30,
+  sampling = 30
+) {
+  begin = new Date(begin * 1000);
+  end = new Date(end * 1000);
+
+  // array of dates like:
+  // [24 Apr 2017, 1 Mar 2017, 1 Apr 2017, 28 Apr 2017]
+  const datesRange = [begin];
+  const stop = new Date(end.getFullYear(), end.getMonth(), 1);
+  let current = begin;
+  for (let month = begin.getMonth() + 1; !isEqual(current, stop); month++) {
+    current = new Date(begin.getFullYear(), month, 1);
+    datesRange.push(current);
+  }
+  if (!isEqual(datesRange[datesRange.length - 1], end)) {
+    datesRange.push(end);
+  }
+
+  const matrix = aggregate(
+    datesRange,
+    { begin, end, data },
+    granularity,
+    sampling
+  );
+  return {
+    data: math.transpose(matrix).toArray(),
+    keys: datesRange
+      .slice(0, datesRange.length - 1)
+      .map(i => monthNames[i.getMonth()] + ' ' + i.getFullYear())
+  };
+}
+
+export function toYears({ begin, end, data }, granularity = 30, sampling = 30) {
+  begin = new Date(begin * 1000);
+  end = new Date(end * 1000);
+
+  // array of dates like:
+  // [24 Apr 2015, 1 Jan 2016, 1 Jan 2017, 1 Jan 2018, 30 Mar 2018]
+  const datesRange = [begin];
+  for (let year = begin.getFullYear() + 1; year <= end.getFullYear(); year++) {
+    datesRange.push(new Date(year, 0, 1));
+  }
+  if (!isEqual(datesRange[datesRange.length - 1], end)) {
+    datesRange.push(end);
+  }
+
+  const matrix = aggregate(
+    datesRange,
+    { begin, end, data },
+    granularity,
+    sampling
+  );
 
   return {
-    matrix,
+    data: math.transpose(matrix).toArray(),
     keys: datesRange.slice(0, datesRange.length - 1).map(i => i.getFullYear())
   };
 }

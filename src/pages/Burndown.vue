@@ -19,9 +19,8 @@
 
       <div v-if="!loading">
         <div>
-          Mode: <select v-model="mode">
-            <option>raw</option>
-            <option>year</option>
+          Resample: <select v-model="resample">
+            <option v-for="opt in resampleOptions" :key="opt.name" :disabled="opt.disabled">{{opt.name}}</option>
           </select>
           </div>
 
@@ -48,7 +47,9 @@ import Responsive from '@/components/Responsive';
 import Burndown from '@/components/Burndown';
 
 import math from 'mathjs';
-import { toYear } from '@/lib/matrix';
+import { toMonths, toYears } from '@/lib/matrix';
+import differenceInMonths from 'date-fns/difference_in_months';
+import differenceInYears from 'date-fns/difference_in_years';
 
 const hercules = window.hercules || {};
 const apiHost = hercules.apiHost || 'http://127.0.0.1:8080';
@@ -65,7 +66,7 @@ export default {
   data() {
     return {
       loading: true,
-      mode: 'raw',
+      resample: 'raw',
       serverData: null,
       begin: null,
       end: null,
@@ -79,25 +80,46 @@ export default {
         return null;
       }
 
-      switch (this.mode) {
+      switch (this.resample) {
         case 'raw':
           return {
             data: this.serverData,
             keys: math.range(0, this.serverData.length).toArray()
           };
 
-        default:
-          const { keys, matrix } = toYear({
+        case 'month':
+          return toMonths({
             data: this.serverData,
             begin: this.begin,
             end: this.end
           });
 
-          return {
-            data: math.transpose(matrix).toArray(),
-            keys
-          };
+        case 'year':
+          return toYears({
+            data: this.serverData,
+            begin: this.begin,
+            end: this.end
+          });
+        default:
+          return null;
       }
+    },
+
+    resampleOptions() {
+      let totalMonths = 0;
+      let totalYears = 0;
+      if (this.end && this.begin) {
+        const begin = new Date(this.begin * 1000);
+        const end = new Date(this.end * 1000);
+        totalMonths = differenceInMonths(end, begin);
+        totalYears = differenceInYears(end, begin);
+      }
+
+      return [
+        { name: 'raw', disabled: false },
+        { name: 'month', disabled: !totalMonths || totalMonths > 50 },
+        { name: 'year', disabled: !totalYears || totalYears == 1 }
+      ];
     }
   },
 
