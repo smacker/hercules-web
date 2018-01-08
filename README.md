@@ -1,6 +1,6 @@
 # hercules-web
 
-> web ui for hercules
+> web ui for [hercules](https://github.com/src-d/hercules)
 
 ## Build
 
