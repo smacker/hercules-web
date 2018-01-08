@@ -129,11 +129,13 @@ function aggregate(datesRange, { begin, end, data }, granularity, sampling) {
     const istart = differenceInDays(datesRange[i - 1], begin);
     const ifinish = differenceInDays(d, begin);
 
-    const x = math.range(0, dailyShape[1]);
-    let val = daily.subset(math.index(istart, x));
-    for (let z = istart + 1; z < ifinish; z++) {
-      val = math.add(val, daily.subset(math.index(z, x)));
+    const val = [];
+    for (let z = istart; z < ifinish; z++) {
+      for (let j = 0; j < dailyShape[1]; j++) {
+        val[j] = (val[j] || 0) + daily.get([z, j]);
+      }
     }
+
     matrix.subset(math.index(i - 1, math.range(0, dailyShape[1])), val);
   });
   return matrix;
