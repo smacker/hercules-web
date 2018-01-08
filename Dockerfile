@@ -6,11 +6,9 @@ RUN apk --update upgrade && \
     build-base libxml2-dev protobuf nodejs=6.10.3-r1 nodejs-npm && \
     npm install -g yarn
 
-# install bblfsh go client deps
-# otherwise hercules installation will fail
+# install bblfsh go client (it's failing sometimes btw but whatever)
 RUN go get -d -v gopkg.in/bblfsh/client-go.v2 && \
-    cd $GOPATH/src/gopkg.in/bblfsh/client-go.v2 && \
-    make dependencies
+    (cd $GOPATH/src/gopkg.in/bblfsh/client-go.v2; make dependencies)
 
 # install gogoproto (for hercules)
 RUN go get github.com/gogo/protobuf/proto && \
@@ -21,8 +19,8 @@ RUN go get github.com/gogo/protobuf/proto && \
 # install hercules (pinned version)
 RUN mkdir -p $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
     git clone -n https://github.com/src-d/hercules.git $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
-    git checkout 1f59ecd8043bc131efb40f2a221318c0dc144c00 && \
     cd $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
+    git checkout 1f59ecd8043bc131efb40f2a221318c0dc144c00 && \
     PATH=$PATH:$GOPATH/bin protoc --gogo_out=pb --proto_path=pb pb/pb.proto
 
 ADD . /go/src/hercules-web
@@ -37,8 +35,8 @@ RUN yarn build && \
     go build -o herculesweb .
 
 FROM alpine:latest  
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates libxml2
 WORKDIR /root/
-COPY --from=0 /go/src/hercules-web/dist .
+COPY --from=0 /go/src/hercules-web/dist ./dist
 COPY --from=0 /go/src/hercules-web/herculesweb .
 CMD ["./herculesweb"]
