@@ -9,10 +9,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"time"
 
-	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	goCache "github.com/patrickmn/go-cache"
@@ -24,6 +24,11 @@ import (
 var cache = goCache.New(time.Hour, 10*time.Minute)
 
 func main() {
+	exDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -44,17 +49,15 @@ func main() {
 		externalHost = "http://127.0.0.1:8080"
 	}
 	script := `<script>window.hercules = {apiHost: '` + externalHost + `'}</script>`
-	indexHTML := MustAsset("dist/index.html")
+	indexHTML, err := ioutil.ReadFile(path.Join(exDir, "dist", "index.html"))
+	if err != nil {
+		panic(err)
+	}
 	indexHTML = bytes.Replace(indexHTML, []byte("</head>"), []byte(script+"</head>"), 1)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write(indexHTML)
 	})
-	r.Mount("/static", http.FileServer(&assetfs.AssetFS{
-		Asset:     Asset,
-		AssetDir:  AssetDir,
-		AssetInfo: AssetInfo,
-		Prefix:    "dist",
-	}))
+	r.Mount("/static", http.FileServer(http.Dir(path.Join(exDir, "dist"))))
 
 	r.Get("/api/burndown/*", jsonResponse(func(r *http.Request) (response, error) {
 		repo := chi.URLParam(r, "*")

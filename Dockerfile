@@ -29,17 +29,16 @@ ADD . /go/src/hercules-web
 WORKDIR /go/src/hercules-web
 
 # install deps
-RUN go get github.com/jteeuwen/go-bindata/... && \
-    go get && \
+RUN go get && \
     yarn
 
 # build everything
 RUN yarn build && \
-    go-bindata dist/... && \
     go build -o herculesweb .
 
 FROM alpine:latest  
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
+COPY --from=0 /go/src/hercules-web/dist .
 COPY --from=0 /go/src/hercules-web/herculesweb .
 CMD ["./herculesweb"]

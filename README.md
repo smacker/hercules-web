@@ -32,9 +32,6 @@ yarn build
 # install all deps (there are many of them, look at Dockerfile)
 ...
 
-# generate bindata
-go-bindata dist/...
-
 # server at localhost:8080
 go run *.go
 ```
