@@ -36,6 +36,7 @@
             :data="data.data"
             :keys="data.keys"
             :tooltip="resample != 'raw'"
+            :legend="resample != 'raw' && data.keys.length < 10"
           />
         </Responsive>
       </div>

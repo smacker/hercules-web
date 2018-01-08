@@ -16,12 +16,15 @@
         <g class="axis axis__y"></g>
       </g>
     </svg>
+    <Legend :colors="colors" :items="keys" v-if="legend"/>
     <div class="tooltip" v-if="tooltip && tooltipShown" :style="tooltipPosition">{{tooltipContent}}</div>
   </div>
 </template>
 
 <script>
 import * as d3 from 'd3';
+import Legend from '@/components/Legend';
+import { interpolateRdYlBu } from 'd3-scale-chromatic';
 
 const margin = { top: 20, right: 20, bottom: 30, left: 50 };
 
@@ -51,10 +54,22 @@ export default {
       type: Array,
       required: true
     },
+    colorSchema: {
+      type: Function,
+      default: interpolateRdYlBu
+    },
+    legend: {
+      type: Boolean,
+      default: true
+    },
     tooltip: {
       type: Boolean,
       default: true
     }
+  },
+
+  components: {
+    Legend
   },
 
   data() {
@@ -84,6 +99,12 @@ export default {
 
     gTransform() {
       return `translate(${margin.left},${margin.top})`;
+    },
+
+    colors() {
+      return d3
+        .range(0, this.keys.length)
+        .map(v => this.colorSchema(v / this.keys.length));
     },
 
     // graph
@@ -120,7 +141,7 @@ export default {
     },
 
     z() {
-      return d3.scaleOrdinal(d3.schemeCategory20).domain(this.keys);
+      return d3.scaleOrdinal(this.colors).domain(this.keys);
     },
 
     step() {
@@ -173,6 +194,12 @@ export default {
 <style scoped>
 .graph {
   position: relative;
+}
+
+.legend {
+  position: absolute;
+  top: 20px;
+  left: 60px;
 }
 
 .tooltip {
