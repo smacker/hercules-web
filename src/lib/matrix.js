@@ -118,26 +118,23 @@ function aggregate(datesRange, { begin, end, data }, granularity, sampling) {
     sampling
   );
   const dailyShape = daily.size();
+  const dailyData = daily._data;
 
   const matrix = math.zeros(datesRange.length - 1, dailyShape[1]);
 
-  datesRange.forEach((d, i) => {
-    if (i === 0) {
-      return;
-    }
-
+  for (let i = 1; i < datesRange.length; i++) {
     const istart = differenceInDays(datesRange[i - 1], begin);
-    const ifinish = differenceInDays(d, begin);
+    const ifinish = differenceInDays(datesRange[i], begin);
 
     const val = [];
     for (let z = istart; z < ifinish; z++) {
       for (let j = 0; j < dailyShape[1]; j++) {
-        val[j] = (val[j] || 0) + daily.get([z, j]);
+        val[j] = (val[j] || 0) + dailyData[z][j];
       }
     }
 
     matrix.subset(math.index(i - 1, math.range(0, dailyShape[1])), val);
-  });
+  }
   return matrix;
 }
 
