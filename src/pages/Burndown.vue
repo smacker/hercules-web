@@ -18,14 +18,16 @@
       </div>
 
       <div v-if="!loading">
-        <div>
+        <a href="/">Back</a>
+
+        <span>
           Resample: <select v-model="resample">
             <option v-for="opt in resampleOptions" :key="opt.name" :disabled="opt.disabled">{{opt.name}}</option>
           </select>
-          </div>
+        </span>
 
         <Responsive v-if="data" class="graph">
-          <Burndown
+          <StackGraph
             slot-scope="props"
             :width="props.width"
             :height="props.height"
@@ -33,6 +35,7 @@
             :end="end"
             :data="data.data"
             :keys="data.keys"
+            :tooltip="resample != 'raw'"
           />
         </Responsive>
       </div>
@@ -44,7 +47,7 @@
 <script>
 import Spinner from '@/components/Spinner';
 import Responsive from '@/components/Responsive';
-import Burndown from '@/components/Burndown';
+import StackGraph from '@/components/StackGraph';
 
 import math from 'mathjs';
 import { toMonths, toYears } from '@/lib/matrix';
@@ -60,7 +63,7 @@ export default {
   components: {
     Spinner,
     Responsive,
-    Burndown
+    StackGraph
   },
 
   data() {

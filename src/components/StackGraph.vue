@@ -1,13 +1,23 @@
 <template>
-  <svg :width="this.width" :height="this.height">
-    <g :transform="gTransform">
-      <g class="layer" v-for="(layer, i) in series" :key="i">
-        <path class="area" :fill="z(i)" :d="area(layer)"></path>
+  <div class="graph">
+    <svg :width="this.width" :height="this.height">
+      <g :transform="gTransform">
+        <g
+          class="layer"
+          v-for="(layer, i) in series"
+          :key="i"
+          @mouseover="showTooltip(i, $event)"
+          @mousemove="moveTooltip"
+          @mouseout="hideTooltip"
+        >
+          <path class="area" :fill="z(i)" :d="area(layer)"></path>
+        </g>
+        <g class="axis axis__x" :transform="xAxisTransform"></g>
+        <g class="axis axis__y"></g>
       </g>
-      <g class="axis axis__x" :transform="xAxisTransform"></g>
-      <g class="axis axis__y"></g>
-    </g>
-  </svg>
+    </svg>
+    <div class="tooltip" v-if="tooltip && tooltipShown" :style="tooltipPosition">{{tooltipContent}}</div>
+  </div>
 </template>
 
 <script>
@@ -40,7 +50,19 @@ export default {
     keys: {
       type: Array,
       required: true
+    },
+    tooltip: {
+      type: Boolean,
+      default: true
     }
+  },
+
+  data() {
+    return {
+      tooltipShown: false,
+      tooltipPosition: {},
+      tooltipContent: ''
+    };
   },
 
   mounted() {
@@ -127,7 +149,36 @@ export default {
         d3.select('.axis__x').call(d3.axisBottom(this.x));
         d3.select('.axis__y').call(d3.axisLeft(this.y));
       });
+    },
+
+    showTooltip(layerId, e) {
+      this.tooltipContent = this.keys[layerId];
+      this.moveTooltip(e);
+      this.tooltipShown = true;
+    },
+    moveTooltip(e) {
+      this.tooltipPosition = {
+        top: e.offsetY + 5 + 'px',
+        left: e.offsetX + 5 + 'px'
+      };
+    },
+    hideTooltip() {
+      this.tooltipShown = false;
     }
   }
 };
 </script>
+
+
+<style scoped>
+.graph {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  border: 1px solid #333;
+  background: #fff;
+  padding: 10px;
+}
+</style>
