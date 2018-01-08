@@ -1,35 +1,43 @@
 <template>
   <div class="burndown-page">
-    <div class="error" v-if="error">{{ error }}</div>
-
-    <div class="loading" v-if="loading">
-      <div class="loading__spinner">
-        <spinner />
-      </div>
-      <div class="loading__text">
-        Fetching &amp; calculating....
-        <br> Please wait, it can take few seconds.
-      </div>
+    <div class="error" v-if="error">
+      <h3>Oops! There is an error:</h3>
+      <p>{{ error }}</p>
+      <p><a href="/">Try another repository</a></p>
     </div>
 
-    <div>
-      Mode: <select v-model="mode">
-        <option>raw</option>
-        <option>year</option>
-      </select>
+    <div v-if="!error">
+      <div class="loading" v-if="loading">
+        <div class="loading__spinner">
+          <spinner />
+        </div>
+        <div class="loading__text">
+          Fetching &amp; calculating....
+          <br> Please wait, it can take few seconds.
+        </div>
       </div>
 
-    <Responsive v-if="data" class="graph">
-      <Burndown
-        slot-scope="props"
-        :width="props.width"
-        :height="props.height"
-        :begin="begin"
-        :end="end"
-        :data="data.data"
-        :keys="data.keys"
-      />
-    </Responsive>
+      <div v-if="!loading">
+        <div>
+          Mode: <select v-model="mode">
+            <option>raw</option>
+            <option>year</option>
+          </select>
+          </div>
+
+        <Responsive v-if="data" class="graph">
+          <Burndown
+            slot-scope="props"
+            :width="props.width"
+            :height="props.height"
+            :begin="begin"
+            :end="end"
+            :data="data.data"
+            :keys="data.keys"
+          />
+        </Responsive>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -143,16 +151,6 @@ export default {
 }
 
 .error {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-
-  display: inline-block;
-  margin: 0 10px 10px 0;
-  padding: 10px;
-
-  background: #fff1f0;
-  border: 1px solid #ffa39e;
   color: #f5222d;
 }
 </style>
