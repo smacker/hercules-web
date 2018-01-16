@@ -12,6 +12,16 @@ export function toMatrix(data) {
   return matrix;
 }
 
+export function sumByColumn(matrix) {
+  const val = [];
+  for (let i = 0; i < matrix.length; i++) {
+    for (let j = 0; j < matrix[i].length; j++) {
+      val[i] = (val[i] || 0) + matrix[i][j];
+    }
+  }
+  return val;
+}
+
 export function interpolate(matrix, granularity, sampling) {
   const shape = matrix.size();
   const daily = math.zeros(shape[0] * granularity, shape[1] * sampling);

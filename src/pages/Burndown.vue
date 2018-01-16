@@ -19,6 +19,7 @@
 
       <div v-if="!loading">
         <a href="/">Back</a>
+        <router-link :to="`/${repo}/burndown/people`">By people</router-link>
 
         <span>
           Resample: <select v-model="resample">
