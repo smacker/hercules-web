@@ -20,6 +20,7 @@
       <div v-if="!loading">
         <a href="/">Back</a>
         <router-link :to="`/${repo}/burndown`">Project overall</router-link>
+        <v-select v-model="person" :options="people" class="v-select"></v-select>
 
         <Responsive v-if="data" class="graph">
           <StackGraph
@@ -30,8 +31,8 @@
             :end="end"
             :data="data"
             :keys="keys"
-            :tooltip="true"
-            :legend="true"
+            :tooltip="!person || resampling !== 'raw'"
+            :legend="!person || resampling === 'year'"
           />
         </Responsive>
       </div>
@@ -41,12 +42,14 @@
 
 
 <script>
+import vSelect from 'vue-select';
 import Spinner from '@/components/Spinner';
 import Responsive from '@/components/Responsive';
 import StackGraph from '@/components/StackGraph';
 
 import math from 'mathjs';
-import { sumByColumn } from '@/lib/matrix';
+import { toMonths, toYears, sumByColumn } from '@/lib/matrix';
+import { chooseDefaultResampling } from '@/lib/time';
 
 const hercules = window.hercules || {};
 const apiHost = hercules.apiHost || 'http://127.0.0.1:8080';
@@ -55,6 +58,7 @@ export default {
   props: ['repo'],
 
   components: {
+    vSelect,
     Spinner,
     Responsive,
     StackGraph
@@ -63,12 +67,72 @@ export default {
   data() {
     return {
       loading: true,
-      data: null,
+      serverData: null,
+      peopleList: [],
+      overallData: null,
       begin: null,
       end: null,
-      keys: null,
-      error: null
+      error: null,
+      person: null
     };
+  },
+
+  computed: {
+    resampling() {
+      if (!this.person) {
+        return null;
+      }
+      return chooseDefaultResampling(this.begin, this.end);
+    },
+
+    resampled() {
+      if (!this.person) {
+        return null;
+      }
+
+      const data = this.serverData[this.person.idx];
+      switch (this.resampling) {
+        case 'year':
+          return toYears({
+            data,
+            begin: this.begin,
+            end: this.end
+          });
+        case 'month':
+          return toMonths({
+            data,
+            begin: this.begin,
+            end: this.end
+          });
+        default:
+          return {
+            data,
+            keys: math.range(0, data.length).toArray()
+          };
+      }
+    },
+
+    data() {
+      if (this.person) {
+        return this.resampled.data;
+      }
+      return this.overallData;
+    },
+
+    keys() {
+      if (this.person) {
+        return this.resampled.keys;
+      }
+      return this.peopleList;
+    },
+
+    people() {
+      return this.peopleList.map((v, i) => {
+        const parts = v.split('|');
+        const email = parts[parts.length - 1];
+        return { value: email, label: v, idx: i };
+      });
+    }
   },
 
   created() {
@@ -90,12 +154,13 @@ export default {
           if (json.error) {
             return Promise.reject(json.error);
           }
-          if (json.data.project.length < 2) {
+          if (json.data.peopleData.length < 2) {
             return Promise.reject('Not enough data');
           }
 
-          this.keys = json.data.peopleList;
-          this.data = math.transpose(
+          this.serverData = json.data.peopleData;
+          this.peopleList = json.data.peopleList;
+          this.overallData = math.transpose(
             json.data.peopleList.map((_, i) => {
               return sumByColumn(json.data.peopleData['' + i]);
             })
@@ -130,5 +195,10 @@ export default {
 
 .error {
   color: #f5222d;
+}
+
+.v-select {
+  display: inline-block;
+  width: 700px;
 }
 </style>
