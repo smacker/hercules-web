@@ -1,8 +1,8 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import Index from '@/pages/Index';
-import Burndown from '@/pages/Burndown';
-import BurndownPeople from '@/pages/BurndownPeople';
+import Project from '@/pages/Project';
+import People from '@/pages/People';
 import Files from '@/pages/Files';
 
 Vue.use(Router);
@@ -16,7 +16,7 @@ export default new Router({
     },
     {
       path: '/:repo(.+)/burndown/people',
-      component: BurndownPeople,
+      component: People,
       props: true
     },
     {
@@ -26,7 +26,7 @@ export default new Router({
     },
     {
       path: '/:repo(.+)/burndown',
-      component: Burndown,
+      component: Project,
       props: true
     }
   ]
