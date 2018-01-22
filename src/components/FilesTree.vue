@@ -1,7 +1,13 @@
 <template>
-  <div>
+  <div class="files-tree">
     <div class="search">
-      <input type="text" placeholder="start typing file name" v-model="query" />
+      <el-input
+        placeholder="start typing file name"
+        v-model="query"
+        size="mini"
+        :clearable="true"
+        class="input"
+      />
     </div>
     <div class="listing">
       <file-item
@@ -55,16 +61,22 @@ export default {
 </script>
 
 <style scoped>
-.search input {
-  display: block;
-  width: 100%;
-  padding: 5px 10px;
+.files-tree {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.search {
+  flex: 0 0 auto;
+}
+
+.input {
   margin-bottom: 3px;
-  border: 1px solid #eaecef;
 }
 
 .listing {
-  max-height: 511px;
+  flex: 0 1 auto;
   overflow: auto;
 
   background: #fff;

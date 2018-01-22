@@ -1,51 +1,36 @@
 <template>
-  <div class="burndown-page">
-    <div class="error" v-if="error">
-      <h3>Oops! There is an error:</h3>
-      <p>{{ error }}</p>
-      <p><a href="/">Try another repository</a></p>
-    </div>
+  <div class="page">
+    <h-header page="files" :repo="repo" :loading="loading" />
 
-    <div v-if="!error">
-      <div class="loading" v-if="loading">
-        <div class="loading__spinner">
-          <spinner />
-        </div>
-        <div class="loading__text">
-          Fetching &amp; calculating....
-          <br> Please wait, it can take few seconds.
-        </div>
-      </div>
+    <error :msg="error" v-if="error" />
 
-      <div v-if="!loading">
-        <a href="/">Back</a>
-        <router-link :to="`/${repo}/burndown`">Project overall</router-link>
-        <router-link :to="`/${repo}/burndown/people`">By people</router-link>
+    <div class="page-body" v-if="!error">
+      <loader v-if="loading" />
 
-        <div class="wrapper">
-          <files-tree
-            class="sidebar"
-            :tree="filesTree.children"
-            :list="filesList"
-            :onSelect="selectFile"
-          />
+      <div class="content-wrapper" v-if="!loading">
+        <files-tree
+          class="sidebar"
+          :tree="filesTree.children"
+          :list="filesList"
+          :onSelect="selectFile"
+        />
 
-          <div class="content">
-            <div class="current-file">{{currentFile.path}}</div>
-            <Responsive v-if="data" class="graph">
-              <StackGraph
-                slot-scope="props"
-                :width="props.width"
-                :height="props.height"
-                :begin="begin"
-                :end="end"
-                :data="data.data"
-                :keys="data.keys"
-                :tooltip="resample != 'raw'"
-                :legend="resample != 'raw' && data.keys.length < 10"
-              />
-            </Responsive>
-          </div>
+        <div class="content">
+          <div class="current-file">{{currentFile.path}}</div>
+          <Responsive v-if="data" class="graph-wrapper">
+            <StackGraph
+              class="graph"
+              slot-scope="props"
+              :width="props.width"
+              :height="props.height"
+              :begin="begin"
+              :end="end"
+              :data="data.data"
+              :keys="data.keys"
+              :tooltip="resample != 'raw'"
+              :legend="resample != 'raw' && data.keys.length < 10"
+            />
+          </Responsive>
         </div>
       </div>
     </div>
@@ -53,7 +38,9 @@
 </template>
 
 <script>
-import Spinner from '@/components/Spinner';
+import Header from '@/components/Header';
+import Error from '@/components/Error';
+import Loader from '@/components/Loader';
 import Responsive from '@/components/Responsive';
 import StackGraph from '@/components/StackGraph';
 
@@ -89,7 +76,9 @@ export default {
   props: ['repo'],
 
   components: {
-    Spinner,
+    HHeader: Header,
+    Error,
+    Loader,
     Responsive,
     StackGraph,
     FilesTree
@@ -177,41 +166,42 @@ export default {
 </script>
 
 <style scoped>
-.loading {
-  font-size: 2em;
-  text-align: center;
-}
-
-.loading__spinner {
-  height: 5em;
-  padding: 1.5em 0 2.5em;
-  margin-bottom: 10px;
-}
-
-.graph {
-  min-width: 600px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.error {
-  color: #f5222d;
-}
-
-.wrapper {
+.content-wrapper {
   display: flex;
+  height: 100%;
 }
 
 .sidebar {
   flex: 0 0 auto;
   width: 400px;
+  height: 100%;
+  padding-bottom: 10px;
 }
 
 .content {
+  display: flex;
+  flex-direction: column;
   width: 100%;
 }
 
 .current-file {
+  flex: 0 0 auto;
+
+  height: 28px;
+  line-height: 28px;
+  margin-bottom: 3px;
   text-align: center;
+}
+
+.graph-wrapper {
+  flex: 1 1 100%;
+
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.graph {
+  margin: 0 auto;
 }
 </style>

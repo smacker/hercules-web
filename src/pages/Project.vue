@@ -1,54 +1,44 @@
 <template>
-  <div class="burndown-page">
-    <div class="error" v-if="error">
-      <h3>Oops! There is an error:</h3>
-      <p>{{ error }}</p>
-      <p><a href="/">Try another repository</a></p>
-    </div>
+  <div class="page">
+    <h-header page="overall" :repo="repo" :loading="loading">
+      <el-radio-group size="small" v-model="resample">
+        <el-radio-button
+          v-for="opt in resampleOptions"
+          :key="opt.name"
+          :label="opt.name"
+          :disabled="opt.disabled"
+        />
+      </el-radio-group>
+    </h-header>
 
-    <div v-if="!error">
-      <div class="loading" v-if="loading">
-        <div class="loading__spinner">
-          <spinner />
-        </div>
-        <div class="loading__text">
-          Fetching &amp; calculating....
-          <br> Please wait, it can take few seconds.
-        </div>
-      </div>
+    <error :msg="error" v-if="error" />
 
-      <div v-if="!loading">
-        <a href="/">Back</a>
-        <router-link :to="`/${repo}/burndown/people`">By people</router-link>
-        <router-link :to="`/${repo}/burndown/files`">By files</router-link>
+    <div class="page-body" v-if="!error">
+      <loader v-if="loading" />
 
-        <span>
-          Resample: <select v-model="resample">
-            <option v-for="opt in resampleOptions" :key="opt.name" :disabled="opt.disabled">{{opt.name}}</option>
-          </select>
-        </span>
-
-        <Responsive v-if="data" class="graph">
-          <StackGraph
-            slot-scope="props"
-            :width="props.width"
-            :height="props.height"
-            :begin="begin"
-            :end="end"
-            :data="data.data"
-            :keys="data.keys"
-            :tooltip="resample != 'raw'"
-            :legend="resample != 'raw' && data.keys.length < 10"
-          />
-        </Responsive>
-      </div>
+      <Responsive v-if="data" class="graph-wrapper">
+        <StackGraph
+          class="graph"
+          slot-scope="props"
+          :width="props.width"
+          :height="props.height"
+          :begin="begin"
+          :end="end"
+          :data="data.data"
+          :keys="data.keys"
+          :tooltip="resample != 'raw'"
+          :legend="resample != 'raw' && data.keys.length < 10"
+        />
+      </Responsive>
     </div>
   </div>
 </template>
 
 
 <script>
-import Spinner from '@/components/Spinner';
+import Header from '@/components/Header';
+import Error from '@/components/Error';
+import Loader from '@/components/Loader';
 import Responsive from '@/components/Responsive';
 import StackGraph from '@/components/StackGraph';
 
@@ -65,7 +55,9 @@ export default {
   props: ['repo'],
 
   components: {
-    Spinner,
+    HHeader: Header,
+    Error,
+    Loader,
     Responsive,
     StackGraph
   },
@@ -167,24 +159,13 @@ export default {
 </script>
 
 <style scoped>
-.loading {
-  font-size: 2em;
-  text-align: center;
-}
-
-.loading__spinner {
-  height: 5em;
-  padding: 1.5em 0 2.5em;
-  margin-bottom: 10px;
-}
-
-.graph {
-  min-width: 600px;
+.graph-wrapper {
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.error {
-  color: #f5222d;
+.graph {
+  margin: 0 auto;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="graph">
+  <div class="graph" :style="{width: `${this.width}px`, height: `${this.height}px`,}">
     <svg :width="this.width" :height="this.height">
       <g :transform="gTransform">
         <g
@@ -26,7 +26,7 @@ import * as d3 from 'd3';
 import Legend from '@/components/Legend';
 import { interpolateRdYlBu } from 'd3-scale-chromatic';
 
-const margin = { top: 20, right: 20, bottom: 30, left: 50 };
+const margin = { top: 5, right: 20, bottom: 30, left: 50 };
 
 export default {
   props: {

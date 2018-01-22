@@ -1,30 +1,29 @@
 <template>
-  <div class="burndown-page">
-    <div class="error" v-if="error">
-      <h3>Oops! There is an error:</h3>
-      <p>{{ error }}</p>
-      <p><a href="/">Try another repository</a></p>
-    </div>
+  <div class="page">
+    <h-header page="people" :repo="repo" :loading="loading">
+      <el-radio-group size="small" v-model="resample" v-if="person">
+        <el-radio-button
+          v-for="opt in resampleOptions"
+          :key="opt.name"
+          :label="opt.name"
+          :disabled="opt.disabled"
+        />
+      </el-radio-group>
+    </h-header>
 
-    <div v-if="!error">
-      <div class="loading" v-if="loading">
-        <div class="loading__spinner">
-          <spinner />
+    <error :msg="error" v-if="error" />
+
+    <div class="page-body" v-if="!error">
+      <loader v-if="loading" />
+
+      <div class="content-wrapper" v-if="!loading">
+        <div class="sidebar">
+          <people :items="people" :selected="person" :onClick="selectPerson" />
         </div>
-        <div class="loading__text">
-          Fetching &amp; calculating....
-          <br> Please wait, it can take few seconds.
-        </div>
-      </div>
 
-      <div v-if="!loading">
-        <a href="/">Back</a>
-        <router-link :to="`/${repo}/burndown`">Project overall</router-link>
-        <router-link :to="`/${repo}/burndown/files`">By files</router-link>
-        <v-select v-model="person" :options="people" class="v-select"></v-select>
-
-        <Responsive v-if="data" class="graph">
+        <Responsive v-if="data" class="graph-wrapper">
           <StackGraph
+            class="graph"
             slot-scope="props"
             :width="props.width"
             :height="props.height"
@@ -32,8 +31,8 @@
             :end="end"
             :data="data"
             :keys="keys"
-            :tooltip="!person || resampling !== 'raw'"
-            :legend="!person || resampling === 'year'"
+            :tooltip="!person || resample !== 'raw'"
+            :legend="false"
           />
         </Responsive>
       </div>
@@ -43,14 +42,19 @@
 
 
 <script>
-import vSelect from 'vue-select';
-import Spinner from '@/components/Spinner';
+import Header from '@/components/Header';
+import Error from '@/components/Error';
+import Loader from '@/components/Loader';
+import People from '@/components/People';
 import Responsive from '@/components/Responsive';
 import StackGraph from '@/components/StackGraph';
 
 import math from 'mathjs';
 import { toMonths, toYears, sumByColumn } from '@/lib/matrix';
 import { chooseDefaultResampling } from '@/lib/time';
+import differenceInMonths from 'date-fns/difference_in_months';
+import differenceInYears from 'date-fns/difference_in_years';
+import { interpolateRdYlBu } from 'd3-scale-chromatic';
 
 const hercules = window.hercules || {};
 const apiHost = hercules.apiHost || 'http://127.0.0.1:8080';
@@ -59,8 +63,10 @@ export default {
   props: ['repo'],
 
   components: {
-    vSelect,
-    Spinner,
+    HHeader: Header,
+    Error,
+    Loader,
+    People,
     Responsive,
     StackGraph
   },
@@ -74,25 +80,19 @@ export default {
       begin: null,
       end: null,
       error: null,
-      person: null
+      person: null,
+      resample: 'raw'
     };
   },
 
   computed: {
-    resampling() {
-      if (!this.person) {
-        return null;
-      }
-      return chooseDefaultResampling(this.begin, this.end);
-    },
-
     resampled() {
       if (!this.person) {
         return null;
       }
 
       const data = this.serverData[this.person.idx];
-      switch (this.resampling) {
+      switch (this.resample) {
         case 'year':
           return toYears({
             data,
@@ -131,8 +131,26 @@ export default {
       return this.peopleList.map((v, i) => {
         const parts = v.split('|');
         const email = parts[parts.length - 1];
-        return { value: email, label: v, idx: i };
+        const color = interpolateRdYlBu(i / this.keys.length);
+        return { value: email, label: v, idx: i, color };
       });
+    },
+
+    resampleOptions() {
+      let totalMonths = 0;
+      let totalYears = 0;
+      if (this.end && this.begin) {
+        const begin = new Date(this.begin * 1000);
+        const end = new Date(this.end * 1000);
+        totalMonths = differenceInMonths(end, begin);
+        totalYears = differenceInYears(end, begin);
+      }
+
+      return [
+        { name: 'raw', disabled: false },
+        { name: 'month', disabled: !totalMonths || totalMonths > 50 },
+        { name: 'year', disabled: !totalYears || totalYears == 1 }
+      ];
     }
   },
 
@@ -168,38 +186,41 @@ export default {
           );
           this.begin = json.data.begin;
           this.end = json.data.end;
+          this.resample = chooseDefaultResampling(this.begin, this.end);
         })
         .catch(e => (this.error = e))
         .then(() => (this.loading = false));
+    },
+
+    selectPerson(person) {
+      this.person = person;
     }
   }
 };
 </script>
 
 <style scoped>
-.loading {
-  font-size: 2em;
-  text-align: center;
+.content-wrapper {
+  display: flex;
+  height: 100%;
 }
 
-.loading__spinner {
-  height: 5em;
-  padding: 1.5em 0 2.5em;
-  margin-bottom: 10px;
+.sidebar {
+  flex: 0 0 auto;
+  width: 400px;
+  height: 100%;
+  padding-bottom: 10px;
 }
 
-.graph {
-  min-width: 600px;
+.graph-wrapper {
+  flex: 1 1 100%;
+
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.error {
-  color: #f5222d;
-}
-
-.v-select {
-  display: inline-block;
-  width: 700px;
+.graph {
+  margin: 0 auto;
 }
 </style>

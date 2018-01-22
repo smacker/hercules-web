@@ -14,11 +14,11 @@
     "d3": "^4.12.0",
     "d3-scale-chromatic": "^1.1.1",
     "date-fns": "^1.29.0",
+    "element-ui": "^2.0.11",
     "mathjs": "^3.18.1",
     "vue": "^2.5.2",
     "vue-awesome": "^2.3.4",
-    "vue-router": "^3.0.1",
-    "vue-select": "^2.4.0"
+    "vue-router": "^3.0.1"
   },
   "devDependencies": {
     "autoprefixer": "^7.1.2",
