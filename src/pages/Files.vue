@@ -19,33 +19,38 @@
 
       <div v-if="!loading">
         <a href="/">Back</a>
+        <router-link :to="`/${repo}/burndown`">Project overall</router-link>
         <router-link :to="`/${repo}/burndown/people`">By people</router-link>
-        <router-link :to="`/${repo}/burndown/files`">By files</router-link>
 
-        <span>
-          Resample: <select v-model="resample">
-            <option v-for="opt in resampleOptions" :key="opt.name" :disabled="opt.disabled">{{opt.name}}</option>
-          </select>
-        </span>
-
-        <Responsive v-if="data" class="graph">
-          <StackGraph
-            slot-scope="props"
-            :width="props.width"
-            :height="props.height"
-            :begin="begin"
-            :end="end"
-            :data="data.data"
-            :keys="data.keys"
-            :tooltip="resample != 'raw'"
-            :legend="resample != 'raw' && data.keys.length < 10"
+        <div class="wrapper">
+          <files-tree
+            class="sidebar"
+            :tree="filesTree.children"
+            :list="filesList"
+            :onSelect="selectFile"
           />
-        </Responsive>
+
+          <div class="content">
+            <div class="current-file">{{currentFile.path}}</div>
+            <Responsive v-if="data" class="graph">
+              <StackGraph
+                slot-scope="props"
+                :width="props.width"
+                :height="props.height"
+                :begin="begin"
+                :end="end"
+                :data="data.data"
+                :keys="data.keys"
+                :tooltip="resample != 'raw'"
+                :legend="resample != 'raw' && data.keys.length < 10"
+              />
+            </Responsive>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
-
 
 <script>
 import Spinner from '@/components/Spinner';
@@ -55,11 +60,30 @@ import StackGraph from '@/components/StackGraph';
 import math from 'mathjs';
 import { toMonths, toYears } from '@/lib/matrix';
 import { chooseDefaultResampling } from '@/lib/time';
-import differenceInMonths from 'date-fns/difference_in_months';
-import differenceInYears from 'date-fns/difference_in_years';
+
+import { filesToTree } from '@/lib/files';
+import FilesTree from '@/components/FilesTree';
 
 const hercules = window.hercules || {};
 const apiHost = hercules.apiHost || 'http://127.0.0.1:8080';
+const initialState = {
+  loading: true,
+  error: null,
+  filesTree: null,
+  filesList: null,
+  currentFile: null,
+
+  serverData: null,
+  begin: null,
+  end: null,
+  resample: 'raw'
+};
+
+function resetState(instance) {
+  Object.keys(initialState).forEach(key => {
+    instance[key] = initialState[key];
+  });
+}
 
 export default {
   props: ['repo'],
@@ -67,18 +91,12 @@ export default {
   components: {
     Spinner,
     Responsive,
-    StackGraph
+    StackGraph,
+    FilesTree
   },
 
   data() {
-    return {
-      loading: true,
-      resample: 'raw',
-      serverData: null,
-      begin: null,
-      end: null,
-      error: null
-    };
+    return initialState;
   },
 
   computed: {
@@ -87,46 +105,35 @@ export default {
         return null;
       }
 
+      if (!this.currentFile) {
+        return null;
+      }
+
+      const data = this.serverData[this.currentFile.path];
+
       switch (this.resample) {
         case 'raw':
           return {
-            data: this.serverData,
-            keys: math.range(0, this.serverData.length).toArray()
+            data,
+            keys: math.range(0, data.length).toArray()
           };
 
         case 'month':
           return toMonths({
-            data: this.serverData,
+            data,
             begin: this.begin,
             end: this.end
           });
 
         case 'year':
           return toYears({
-            data: this.serverData,
+            data,
             begin: this.begin,
             end: this.end
           });
         default:
           return null;
       }
-    },
-
-    resampleOptions() {
-      let totalMonths = 0;
-      let totalYears = 0;
-      if (this.end && this.begin) {
-        const begin = new Date(this.begin * 1000);
-        const end = new Date(this.end * 1000);
-        totalMonths = differenceInMonths(end, begin);
-        totalYears = differenceInYears(end, begin);
-      }
-
-      return [
-        { name: 'raw', disabled: false },
-        { name: 'month', disabled: !totalMonths || totalMonths > 50 },
-        { name: 'year', disabled: !totalYears || totalYears == 1 }
-      ];
     }
   },
 
@@ -140,9 +147,7 @@ export default {
 
   methods: {
     fetchData() {
-      this.serverData = null;
-      this.loading = true;
-      this.error = null;
+      resetState(this);
 
       fetch(`${apiHost}/api/burndown/${this.repo}`)
         .then(r => r.json())
@@ -150,17 +155,22 @@ export default {
           if (json.error) {
             return Promise.reject(json.error);
           }
-          if (json.data.project.length < 2) {
-            return Promise.reject('Not enough data');
-          }
-
-          this.serverData = json.data.project;
+          const { tree, list } = filesToTree(Object.keys(json.data.filesData));
+          this.filesTree = tree;
+          this.filesList = list;
+          this.serverData = json.data.filesData;
           this.begin = json.data.begin;
           this.end = json.data.end;
           this.resample = chooseDefaultResampling(this.begin, this.end);
+
+          this.currentFile = list[0];
         })
         .catch(e => (this.error = e))
         .then(() => (this.loading = false));
+    },
+
+    selectFile(file) {
+      this.currentFile = file;
     }
   }
 };
@@ -186,5 +196,22 @@ export default {
 
 .error {
   color: #f5222d;
+}
+
+.wrapper {
+  display: flex;
+}
+
+.sidebar {
+  flex: 0 0 auto;
+  width: 400px;
+}
+
+.content {
+  width: 100%;
+}
+
+.current-file {
+  text-align: center;
 }
 </style>

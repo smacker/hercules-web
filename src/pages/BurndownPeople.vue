@@ -20,6 +20,7 @@
       <div v-if="!loading">
         <a href="/">Back</a>
         <router-link :to="`/${repo}/burndown`">Project overall</router-link>
+        <router-link :to="`/${repo}/burndown/files`">By files</router-link>
         <v-select v-model="person" :options="people" class="v-select"></v-select>
 
         <Responsive v-if="data" class="graph">
