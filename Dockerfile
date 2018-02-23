@@ -18,9 +18,9 @@ RUN go get github.com/gogo/protobuf/proto && \
 
 # install hercules (pinned version)
 RUN mkdir -p $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
-  git clone -n https://github.com/src-d/hercules.git $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
+  git clone -n https://github.com/smacker/hercules.git $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
   cd $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
-  git checkout 67ea13845183599c6ec5f66df91797a5b925cb8f && \
+  git checkout 4e3b0054e9a88bce5b3941cc568b7af1b6a71c2b && \
   PATH=$PATH:$GOPATH/bin protoc --gogo_out=pb --proto_path=pb pb/pb.proto
 
 ADD . /go/src/hercules-web

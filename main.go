@@ -145,6 +145,7 @@ func burndown(uri string) (response, error) {
 		// maybe move to another endpoint? but actually it's cheap enough compare to downloading repo
 		hercules.ConfigBurndownTrackPeople: true,
 		hercules.ConfigBurndownTrackFiles:  true,
+		hercules.ConfigTreeDiffSkipVendor:  true,
 	}
 	pipeline.Initialize(facts)
 	results, err := pipeline.Run(commits)
