@@ -4,9 +4,11 @@
     <el-menu-item index="people">By people</el-menu-item>
     <el-menu-item index="files">By files</el-menu-item>
     <li class="repo">
-      <el-input :value="repo" class="input" :disabled="loading">
-        <el-button slot="append" icon="el-icon-search" />
-      </el-input>
+      <form @submit.prevent="handleRepoSubmit">
+        <el-input v-model="repoVal" class="input" :disabled="loading">
+          <el-button slot="append" icon="el-icon-search" native-type="submit" />
+        </el-input>
+      </form>
     </li>
     <li class="el-menu-item slot">
       <slot />
@@ -18,13 +20,32 @@
 export default {
   props: ['page', 'repo', 'loading'],
 
+  data() {
+    return {
+      repoVal: this.repo
+    };
+  },
+
   methods: {
     handleSelect(key) {
       if (key === 'overall') {
-        this.$router.push({ path: `/${this.repo}/burndown` });
+        this.$router.push({
+          name: 'project',
+          params: { repo: this.repo }
+        });
         return;
       }
-      this.$router.push({ path: `/${this.repo}/burndown/${key}` });
+      this.$router.push({
+        name: key,
+        params: { repo: this.repo }
+      });
+    },
+
+    handleRepoSubmit() {
+      this.$router.push({
+        name: this.$route.name,
+        params: { repo: this.repoVal }
+      });
     }
   }
 };

@@ -14,7 +14,7 @@ export default {
 
   methods: {
     submit(repo) {
-      this.$router.push({ path: `/${repo}/burndown` });
+      this.$router.push({ name: 'project', params: { repo } });
     }
   }
 };
