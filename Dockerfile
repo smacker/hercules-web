@@ -6,10 +6,6 @@ RUN apk --update upgrade && \
   build-base libxml2-dev protobuf nodejs nodejs-npm && \
   npm install -g yarn
 
-# install bblfsh go client (it's failing sometimes btw but whatever)
-RUN go get -d -v gopkg.in/bblfsh/client-go.v2 && \
-  (cd $GOPATH/src/gopkg.in/bblfsh/client-go.v2; make dependencies)
-
 # install gogoproto (for hercules)
 RUN go get github.com/gogo/protobuf/proto && \
   go get github.com/gogo/protobuf/jsonpb && \
