@@ -16,7 +16,7 @@ RUN go get github.com/gogo/protobuf/proto && \
 RUN mkdir -p $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
   git clone -n https://github.com/smacker/hercules.git $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
   cd $GOPATH/src/gopkg.in/src-d/hercules.v3 && \
-  git checkout 4e3b0054e9a88bce5b3941cc568b7af1b6a71c2b && \
+  git checkout 1bdd0b79356e89da1a6d1558f15be87d4f722e87 && \
   PATH=$PATH:$GOPATH/bin protoc --gogo_out=pb --proto_path=pb pb/pb.proto
 
 ADD . /go/src/hercules-web
