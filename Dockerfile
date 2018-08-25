@@ -3,7 +3,7 @@ FROM golang:1.8-alpine3.6
 # base deps
 RUN apk --update upgrade && \
   apk add --no-cache make git curl ca-certificates bash \
-  build-base libxml2-dev protobuf nodejs=6.10.3-r1 nodejs-npm && \
+  build-base libxml2-dev protobuf nodejs nodejs-npm && \
   npm install -g yarn
 
 # install bblfsh go client (it's failing sometimes btw but whatever)
