@@ -4,11 +4,10 @@
 
 ![Project Burndown](docs/project-burndown.png?raw=true)
 
-## Build
+## Run
 
 ```
-docker build -t hercules-web .
-docker run --rm -p 8080:8080 hercules-web
+docker run --rm -p 8080:8080 smacker/hercules-web
 ```
 
 Open http://localhost:8080
