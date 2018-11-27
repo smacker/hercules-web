@@ -18,7 +18,8 @@ import (
 	goCache "github.com/patrickmn/go-cache"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
-	hercules "gopkg.in/src-d/hercules.v3"
+	hercules "gopkg.in/src-d/hercules.v5"
+	"gopkg.in/src-d/hercules.v5/leaves"
 )
 
 var cache = goCache.New(time.Hour, 10*time.Minute)
@@ -137,38 +138,52 @@ func burndown(uri string) (response, error) {
 	}
 
 	pipeline := hercules.NewPipeline(repository)
-	commits := pipeline.Commits()
+	commits, err := pipeline.Commits(false)
+	if err != nil {
+		return response{}, err
+	}
+
+	facts := map[string]interface{}{
+		hercules.ConfigPipelineCommits: commits,
+		// maybe move to another endpoint? but actually it's cheap enough compare to downloading repo
+		leaves.ConfigBurndownGranularity: 30,
+		leaves.ConfigBurndownSampling:    30,
+		leaves.ConfigBurndownTrackPeople: true,
+		leaves.ConfigBurndownTrackFiles:  true,
+		// this constants are internal in hercules
+		"RenameAnalysis.SimilarityThreshold": 80,
+		"TreeDiff.Languages":                 []string{"all"},
+		"TreeDiff.EnableBlacklist":           true,
+		"TreeDiff.BlacklistedPrefixes":       []string{"vendor/", "vendors/", "node_modules/"},
+	}
+
 	burndownItem := hercules.Registry.Summon("Burndown")[0]
 	pipeline.DeployItem(burndownItem)
-	facts := map[string]interface{}{
-		"commits": commits,
-		// maybe move to another endpoint? but actually it's cheap enough compare to downloading repo
-		hercules.ConfigBurndownTrackPeople:     true,
-		hercules.ConfigBurndownTrackFiles:      true,
-		hercules.ConfigTreeDiffSkipBlacklist:   true,
-		hercules.ConfigTreeDiffBlacklistedDirs: []string{"vendor/", "vendors/", "node_modules/"},
-	}
+
 	pipeline.Initialize(facts)
+
 	results, err := pipeline.Run(commits)
 	if err != nil {
 		return response{}, err
 	}
 	// it's super ugly, but hercules api isn't very friendly or I just didn't get it
-	var r hercules.BurndownResult
+	var r leaves.BurndownResult
 	for li, v := range results {
 		if li == nil {
 			continue
 		}
 		if li.Name() == "Burndown" {
-			r = v.(hercules.BurndownResult)
+			r = v.(leaves.BurndownResult)
 		}
 	}
+
+	commonResult := results[nil].(*hercules.CommonAnalysisResult)
 
 	return response{
 		Status: http.StatusOK,
 		Data: burndownResponse{
-			Begin:      commits[0].Author.When.Unix(),
-			End:        commits[len(commits)-1].Author.When.Unix(),
+			Begin:      commonResult.BeginTime,
+			End:        commonResult.EndTime,
 			Project:    r.GlobalHistory,
 			Files:      r.FileHistories,
 			PeopleData: r.PeopleHistories,
