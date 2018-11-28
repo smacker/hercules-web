@@ -6,7 +6,7 @@
       @click="item.type === 'dir' ? onClick(item) : onSelect(item)"
     >
       <icon name="folder" v-if="item.type === 'dir'" />
-      <icon name="file-code-o" v-if="item.type === 'file'" />
+      <icon name="file-code" v-if="item.type === 'file'" />
       {{item.name}}
     </div>
     <file-item
@@ -21,7 +21,7 @@
 
 <script>
 import 'vue-awesome/icons/folder';
-import 'vue-awesome/icons/file-code-o';
+import 'vue-awesome/icons/file-code';
 import Icon from 'vue-awesome/components/Icon';
 
 export default {
