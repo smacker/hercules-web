@@ -61,7 +61,7 @@ export default {
   padding-left: 70px;
 }
 
-.slot {
+.el-menu-item.slot {
   float: right;
 }
 

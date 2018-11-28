@@ -54,5 +54,6 @@ export default {
   width: 20px;
   height: 20px;
   border: 1px solid #eaecef;
+  margin-right: 4px;
 }
 </style>
