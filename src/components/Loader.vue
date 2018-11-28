@@ -1,17 +1,16 @@
 <template>
   <div class="loading">
     <div class="loading__spinner">
-      <spinner />
+      <spinner/>
     </div>
-    <div class="loading__text">
-      Fetching &amp; calculating....
-      <br> Please wait, it can take few seconds.
+    <div class="loading__text">Fetching &amp; calculating....
+      <br>Please wait, it can take few seconds.
     </div>
   </div>
 </template>
 
 <script>
-import Spinner from '@/components/Spinner';
+import Spinner from "@/components/Spinner";
 
 export default {
   components: {

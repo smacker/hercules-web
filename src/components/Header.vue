@@ -6,19 +6,19 @@
     <li class="repo">
       <form @submit.prevent="handleRepoSubmit">
         <el-input v-model="repoVal" class="input" :disabled="loading">
-          <el-button slot="append" icon="el-icon-search" native-type="submit" />
+          <el-button slot="append" icon="el-icon-search" native-type="submit"/>
         </el-input>
       </form>
     </li>
     <li class="el-menu-item slot">
-      <slot />
+      <slot/>
     </li>
   </el-menu>
 </template>
 
 <script>
 export default {
-  props: ['page', 'repo', 'loading'],
+  props: ["page", "repo", "loading"],
 
   data() {
     return {
@@ -28,9 +28,9 @@ export default {
 
   methods: {
     handleSelect(key) {
-      if (key === 'overall') {
+      if (key === "overall") {
         this.$router.push({
-          name: 'project',
+          name: "project",
           params: { repo: this.repo }
         });
         return;

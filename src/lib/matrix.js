@@ -42,7 +42,8 @@ export function interpolate(matrix, granularity, sampling) {
         math.range(y * granularity, (y + 1) * granularity).forEach(i => {
           const initial = daily.get([i, startIndex - 1]);
           math.range(startIndex, (x + 1) * sampling).forEach(j => {
-            const val = initial * (1 + (k - 1) * (j - startIndex + 1) / scale);
+            const val =
+              initial * (1 + ((k - 1) * (j - startIndex + 1)) / scale);
             daily.set([i, j], val);
           });
         });
@@ -98,7 +99,7 @@ export function interpolate(matrix, granularity, sampling) {
         } else {
           scale = x == 0 ? sampling : x * sampling - y * granularity;
         }
-        let peak = v1 + (v1 - previous) / scale * delta;
+        let peak = v1 + ((v1 - previous) / scale) * delta;
         if (v2 > peak) {
           // we need to adjust the peak, it may not be less than the decayed value
           if (x < shape[1] - 1) {
@@ -121,7 +122,7 @@ export function interpolate(matrix, granularity, sampling) {
   return daily;
 }
 
-function aggregate(datesRange, { begin, end, data }, granularity, sampling) {
+function aggregate(datesRange, { begin, data }, granularity, sampling) {
   const daily = interpolate(
     math.transpose(toMatrix(data)),
     granularity,

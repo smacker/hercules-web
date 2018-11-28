@@ -1,7 +1,8 @@
 <template>
   <ul class="legend">
-  <li class="item" v-for="(item, i) in items" :key="item">
-      <span class="color" :style="{backgroundColor: colors[i]}" /> {{item}}
+    <li class="item" v-for="(item, i) in items" :key="item">
+      <span class="color" :style="{backgroundColor: colors[i]}"/>
+      {{item}}
     </li>
   </ul>
 </template>

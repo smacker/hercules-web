@@ -1,11 +1,11 @@
 <template>
   <div class="index-page">
-    <main-form :on-submit="submit" />
+    <main-form :on-submit="submit"/>
   </div>
 </template>
 
 <script>
-import MainForm from '@/components/MainForm';
+import MainForm from "@/components/MainForm";
 
 export default {
   components: {
@@ -14,7 +14,7 @@ export default {
 
   methods: {
     submit(repo) {
-      this.$router.push({ name: 'project', params: { repo } });
+      this.$router.push({ name: "project", params: { repo } });
     }
   }
 };

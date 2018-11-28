@@ -1,6 +1,6 @@
 <template>
   <div class="wrapper">
-    <slot v-if="width" :width="width" :height="height" />
+    <slot v-if="width" :width="width" :height="height"/>
   </div>
 </template>
 
@@ -9,7 +9,7 @@ export default {
   props: {
     mode: {
       type: String,
-      default: 'both' // maybe later I'll need modes based on only width/height
+      default: "both" // maybe later I'll need modes based on only width/height
     },
     proportion: {
       type: Number,
@@ -46,11 +46,11 @@ export default {
 
   mounted() {
     this.updateSize();
-    window.addEventListener('resize', this.updateSize);
+    window.addEventListener("resize", this.updateSize);
   },
 
   beforeDestroy() {
-    window.removeEventListener('resize', this.updateSize);
+    window.removeEventListener("resize", this.updateSize);
   },
 
   methods: {

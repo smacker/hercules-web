@@ -11,14 +11,14 @@
       </el-radio-group>
     </h-header>
 
-    <error :msg="error" v-if="error" />
+    <error :msg="error" v-if="error"/>
 
     <div class="page-body" v-if="!error">
-      <loader v-if="loading" />
+      <loader v-if="loading"/>
 
       <div class="content-wrapper" v-if="!loading">
         <div class="sidebar">
-          <people :items="people" :selected="person" :onClick="selectPerson" />
+          <people :items="people" :selected="person" :onClick="selectPerson"/>
         </div>
 
         <Responsive v-if="data" class="graph-wrapper">
@@ -42,25 +42,25 @@
 
 
 <script>
-import Header from '@/components/Header';
-import Error from '@/components/Error';
-import Loader from '@/components/Loader';
-import People from '@/components/People';
-import Responsive from '@/components/Responsive';
-import StackGraph from '@/components/StackGraph';
+import Header from "@/components/Header";
+import Error from "@/components/Error";
+import Loader from "@/components/Loader";
+import People from "@/components/People";
+import Responsive from "@/components/Responsive";
+import StackGraph from "@/components/StackGraph";
 
-import math from 'mathjs';
-import { toMonths, toYears, sumByColumn } from '@/lib/matrix';
-import { chooseDefaultResampling } from '@/lib/time';
-import differenceInMonths from 'date-fns/difference_in_months';
-import differenceInYears from 'date-fns/difference_in_years';
-import { interpolateRdYlBu } from 'd3-scale-chromatic';
+import math from "mathjs";
+import { toMonths, toYears, sumByColumn } from "@/lib/matrix";
+import { chooseDefaultResampling } from "@/lib/time";
+import differenceInMonths from "date-fns/difference_in_months";
+import differenceInYears from "date-fns/difference_in_years";
+import { interpolateRdYlBu } from "d3-scale-chromatic";
 
 const hercules = window.hercules || {};
-const apiHost = hercules.apiHost || 'http://127.0.0.1:8080';
+const apiHost = hercules.apiHost || "http://127.0.0.1:8080";
 
 export default {
-  props: ['repo'],
+  props: ["repo"],
 
   components: {
     HHeader: Header,
@@ -81,7 +81,7 @@ export default {
       end: null,
       error: null,
       person: null,
-      resample: 'raw'
+      resample: "raw"
     };
   },
 
@@ -93,13 +93,13 @@ export default {
 
       const data = this.serverData[this.person.idx];
       switch (this.resample) {
-        case 'year':
+        case "year":
           return toYears({
             data,
             begin: this.begin,
             end: this.end
           });
-        case 'month':
+        case "month":
           return toMonths({
             data,
             begin: this.begin,
@@ -129,7 +129,7 @@ export default {
 
     people() {
       return this.peopleList.map((v, i) => {
-        const parts = v.split('|');
+        const parts = v.split("|");
         const email = parts[parts.length - 1];
         const color = interpolateRdYlBu(i / this.keys.length);
         return { value: email, label: v, idx: i, color };
@@ -147,9 +147,9 @@ export default {
       }
 
       return [
-        { name: 'raw', disabled: false },
-        { name: 'month', disabled: !totalMonths || totalMonths > 50 },
-        { name: 'year', disabled: !totalYears || totalYears == 1 }
+        { name: "raw", disabled: false },
+        { name: "month", disabled: !totalMonths || totalMonths > 50 },
+        { name: "year", disabled: !totalYears || totalYears == 1 }
       ];
     }
   },
@@ -159,7 +159,7 @@ export default {
   },
 
   watch: {
-    $route: 'fetchData'
+    $route: "fetchData"
   },
 
   methods: {
@@ -174,14 +174,14 @@ export default {
             return Promise.reject(json.error);
           }
           if (json.data.peopleData.length < 2) {
-            return Promise.reject('Not enough data');
+            return Promise.reject("Not enough data");
           }
 
           this.serverData = json.data.peopleData;
           this.peopleList = json.data.peopleList;
           this.overallData = math.transpose(
             json.data.peopleList.map((_, i) => {
-              return sumByColumn(json.data.peopleData['' + i]);
+              return sumByColumn(json.data.peopleData["" + i]);
             })
           );
           this.begin = json.data.begin;

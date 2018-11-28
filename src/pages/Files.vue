@@ -1,11 +1,11 @@
 <template>
   <div class="page">
-    <h-header page="files" :repo="repo" :loading="loading" />
+    <h-header page="files" :repo="repo" :loading="loading"/>
 
-    <error :msg="error" v-if="error" />
+    <error :msg="error" v-if="error"/>
 
     <div class="page-body" v-if="!error">
-      <loader v-if="loading" />
+      <loader v-if="loading"/>
 
       <div class="content-wrapper" v-if="!loading">
         <files-tree
@@ -38,21 +38,21 @@
 </template>
 
 <script>
-import Header from '@/components/Header';
-import Error from '@/components/Error';
-import Loader from '@/components/Loader';
-import Responsive from '@/components/Responsive';
-import StackGraph from '@/components/StackGraph';
+import Header from "@/components/Header";
+import Error from "@/components/Error";
+import Loader from "@/components/Loader";
+import Responsive from "@/components/Responsive";
+import StackGraph from "@/components/StackGraph";
 
-import math from 'mathjs';
-import { toMonths, toYears } from '@/lib/matrix';
-import { chooseDefaultResampling } from '@/lib/time';
+import math from "mathjs";
+import { toMonths, toYears } from "@/lib/matrix";
+import { chooseDefaultResampling } from "@/lib/time";
 
-import { filesToTree } from '@/lib/files';
-import FilesTree from '@/components/FilesTree';
+import { filesToTree } from "@/lib/files";
+import FilesTree from "@/components/FilesTree";
 
 const hercules = window.hercules || {};
-const apiHost = hercules.apiHost || 'http://127.0.0.1:8080';
+const apiHost = hercules.apiHost || "http://127.0.0.1:8080";
 const initialState = {
   loading: true,
   error: null,
@@ -63,7 +63,7 @@ const initialState = {
   serverData: null,
   begin: null,
   end: null,
-  resample: 'raw'
+  resample: "raw"
 };
 
 function resetState(instance) {
@@ -73,7 +73,7 @@ function resetState(instance) {
 }
 
 export default {
-  props: ['repo'],
+  props: ["repo"],
 
   components: {
     HHeader: Header,
@@ -101,20 +101,20 @@ export default {
       const data = this.serverData[this.currentFile.path];
 
       switch (this.resample) {
-        case 'raw':
+        case "raw":
           return {
             data,
             keys: math.range(0, data.length).toArray()
           };
 
-        case 'month':
+        case "month":
           return toMonths({
             data,
             begin: this.begin,
             end: this.end
           });
 
-        case 'year':
+        case "year":
           return toYears({
             data,
             begin: this.begin,
@@ -131,7 +131,7 @@ export default {
   },
 
   watch: {
-    $route: 'fetchData'
+    $route: "fetchData"
   },
 
   methods: {

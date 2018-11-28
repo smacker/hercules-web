@@ -25,7 +25,7 @@
 .spinner:after {
   position: absolute;
   top: 0;
-  content: '';
+  content: "";
 }
 .spinner:before {
   left: -1.5em;

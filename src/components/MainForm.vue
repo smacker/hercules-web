@@ -1,25 +1,25 @@
 <template>
   <form class="main-form" @submit.prevent="submit">
-      <input
-          class="main-form__input"
-          type="text"
-          name="repo"
-          id="repo"
-          placeholder="ex: github.com/src-d/go-git"
-          v-model="repo"
-      >
-      <input class="main-form__submit" type="submit" value="Code Burndown!" :disabled="!repo">
+    <input
+      class="main-form__input"
+      type="text"
+      name="repo"
+      id="repo"
+      placeholder="ex: github.com/src-d/go-git"
+      v-model="repo"
+    >
+    <input class="main-form__submit" type="submit" value="Code Burndown!" :disabled="!repo">
   </form>
 </template>
 
 <script>
-const httpsRegex = new RegExp('^https?://');
+const httpsRegex = new RegExp("^https?://");
 
 export default {
   props: { onSubmit: Function },
 
   data() {
-    return { repo: '' };
+    return { repo: "" };
   },
 
   methods: {
@@ -27,7 +27,7 @@ export default {
       if (!this.repo) {
         return;
       }
-      this.repo = this.repo.replace(httpsRegex, '');
+      this.repo = this.repo.replace(httpsRegex, "");
 
       this.onSubmit(this.repo);
     }

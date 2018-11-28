@@ -2,13 +2,15 @@
   <div class="error">
     <h3>Oops! There is an error:</h3>
     <p>{{ msg }}</p>
-    <p><a href="/">Try another repository</a></p>
+    <p>
+      <a href="/">Try another repository</a>
+    </p>
   </div>
 </template>
 
 <script>
 export default {
-  props: ['msg']
+  props: ["msg"]
 };
 </script>
 

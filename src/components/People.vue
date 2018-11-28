@@ -8,7 +8,7 @@
         :class="{'people-item': true, selected: selected && item.value === selected.value}"
         @click="onClick(item)"
       >
-        <span class="color" :style="{backgroundColor: item.color}" />
+        <span class="color" :style="{backgroundColor: item.color}"/>
         <span class="text">{{item.label}}</span>
       </div>
     </div>
@@ -17,7 +17,7 @@
 
 <script>
 export default {
-  props: ['items', 'selected', 'onClick']
+  props: ["items", "selected", "onClick"]
 };
 </script>
 

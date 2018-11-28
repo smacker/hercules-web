@@ -10,31 +10,26 @@
       />
     </div>
     <div class="listing">
-      <file-item
-        v-if="!query"
-        v-for="item in tree"
-        :key="item.path"
-        :item="item"
-        :onSelect="onSelect"
-      />
-      <div
-        v-if="query"
-        v-for="item in filtered"
-        :key="item.path"
-        :class="{'file-item': true, [item.type]:true}"
-        @click="onSelect(item)"
-      >
-        {{item.path}}
+      <div v-if="!query">
+        <file-item v-for="item in tree" :key="item.path" :item="item" :onSelect="onSelect"/>
+      </div>
+      <div v-if="query">
+        <div
+          v-for="item in filtered"
+          :key="item.path"
+          :class="{'file-item': true, [item.type]:true}"
+          @click="onSelect(item)"
+        >{{item.path}}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import FileItem from '@/components/FileItem';
+import FileItem from "@/components/FileItem";
 
 export default {
-  props: ['tree', 'list', 'onSelect'],
+  props: ["tree", "list", "onSelect"],
 
   components: {
     FileItem
@@ -42,7 +37,7 @@ export default {
 
   data() {
     return {
-      query: ''
+      query: ""
     };
   },
 

@@ -22,9 +22,9 @@
 </template>
 
 <script>
-import * as d3 from 'd3';
-import Legend from '@/components/Legend';
-import { interpolateRdYlBu } from 'd3-scale-chromatic';
+import * as d3 from "d3";
+import Legend from "@/components/Legend";
+import { interpolateRdYlBu } from "d3-scale-chromatic";
 
 const margin = { top: 5, right: 20, bottom: 30, left: 50 };
 
@@ -76,7 +76,7 @@ export default {
     return {
       tooltipShown: false,
       tooltipPosition: {},
-      tooltipContent: ''
+      tooltipContent: ""
     };
   },
 
@@ -167,8 +167,8 @@ export default {
   methods: {
     updateAxis() {
       this.$nextTick(() => {
-        d3.select('.axis__x').call(d3.axisBottom(this.x));
-        d3.select('.axis__y').call(d3.axisLeft(this.y));
+        d3.select(".axis__x").call(d3.axisBottom(this.x));
+        d3.select(".axis__y").call(d3.axisLeft(this.y));
       });
     },
 
@@ -179,8 +179,8 @@ export default {
     },
     moveTooltip(e) {
       this.tooltipPosition = {
-        top: e.offsetY + 5 + 'px',
-        left: e.offsetX + 5 + 'px'
+        top: e.offsetY + 5 + "px",
+        left: e.offsetX + 5 + "px"
       };
     },
     hideTooltip() {
