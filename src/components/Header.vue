@@ -5,8 +5,18 @@
     <el-menu-item index="files">By files</el-menu-item>
     <li class="repo">
       <form @submit.prevent="handleRepoSubmit">
-        <el-input v-model="repoVal" class="input" :disabled="loading">
-          <el-button slot="append" icon="el-icon-search" native-type="submit"/>
+        <el-input
+          v-model="repoVal"
+          class="input"
+          :disabled="loading"
+          @keyup.enter.native="handleRepoSubmit"
+        >
+          <el-button
+            slot="append"
+            icon="el-icon-search"
+            native-type="submit"
+            @click="handleRepoSubmit"
+          />
         </el-input>
       </form>
     </li>
