@@ -42,7 +42,7 @@ import Loader from "@/components/Loader";
 import Responsive from "@/components/Responsive";
 import StackGraph from "@/components/StackGraph";
 
-import math from "mathjs";
+import math from "@/lib/math";
 import { toMonths, toYears } from "@/lib/matrix";
 import { chooseDefaultResampling } from "@/lib/time";
 import differenceInMonths from "date-fns/difference_in_months";

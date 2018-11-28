@@ -1,4 +1,4 @@
-import math from 'mathjs';
+import math from './math';
 import isEqual from 'date-fns/is_equal';
 import differenceInDays from 'date-fns/difference_in_days';
 
