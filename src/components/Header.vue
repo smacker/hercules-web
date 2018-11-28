@@ -69,6 +69,7 @@ export default {
 .repo {
   float: left;
   padding-left: 70px;
+  outline: none;
 }
 
 .el-menu-item.slot {
