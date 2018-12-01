@@ -32,8 +32,17 @@ export default {
 
   data() {
     return {
-      repoVal: this.repo
+      passedRepo: "" + this.repo,
+      repoVal: "" + this.repo
     };
+  },
+
+  beforeUpdate() {
+    // update input when receive new repo (from url for example)
+    if (this.repo != this.passedRepo) {
+      this.repoVal = this.repo;
+      this.passedRepo = this.repo;
+    }
   },
 
   methods: {
