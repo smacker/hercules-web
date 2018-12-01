@@ -131,7 +131,7 @@ export default {
       return this.peopleList.map((v, i) => {
         const parts = v.split("|");
         const email = parts[parts.length - 1];
-        const color = interpolateRdYlBu(i / this.keys.length);
+        const color = interpolateRdYlBu(i / this.peopleList.length);
         return { value: email, label: v, idx: i, color };
       });
     },
