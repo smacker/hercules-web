@@ -49,15 +49,13 @@ import People from "@/components/People";
 import Responsive from "@/components/Responsive";
 import StackGraph from "@/components/StackGraph";
 
+import { fetch } from "@/lib/api";
 import math from "@/lib/math";
 import { toMonths, toYears, sumByColumn } from "@/lib/matrix";
 import { chooseDefaultResampling } from "@/lib/time";
 import differenceInMonths from "date-fns/difference_in_months";
 import differenceInYears from "date-fns/difference_in_years";
 import { interpolateRdYlBu } from "d3-scale-chromatic";
-
-const hercules = window.hercules || {};
-const apiHost = hercules.apiHost || "http://127.0.0.1:8080";
 
 export default {
   props: ["repo"],
@@ -167,8 +165,7 @@ export default {
       this.loading = true;
       this.error = null;
 
-      fetch(`${apiHost}/api/burndown/${this.repo}`)
-        .then(r => r.json())
+      fetch(`/api/analysis/people/${this.repo}`)
         .then(json => {
           if (json.error) {
             return Promise.reject(json.error);

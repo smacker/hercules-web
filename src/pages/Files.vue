@@ -44,6 +44,7 @@ import Loader from "@/components/Loader";
 import Responsive from "@/components/Responsive";
 import StackGraph from "@/components/StackGraph";
 
+import { fetch } from "@/lib/api";
 import math from "@/lib/math";
 import { toMonths, toYears } from "@/lib/matrix";
 import { chooseDefaultResampling } from "@/lib/time";
@@ -51,8 +52,6 @@ import { chooseDefaultResampling } from "@/lib/time";
 import { filesToTree } from "@/lib/files";
 import FilesTree from "@/components/FilesTree";
 
-const hercules = window.hercules || {};
-const apiHost = hercules.apiHost || "http://127.0.0.1:8080";
 const initialState = {
   loading: true,
   error: null,
@@ -138,8 +137,7 @@ export default {
     fetchData() {
       resetState(this);
 
-      fetch(`${apiHost}/api/burndown/${this.repo}`)
-        .then(r => r.json())
+      fetch(`/api/analysis/files/${this.repo}`)
         .then(json => {
           if (json.error) {
             return Promise.reject(json.error);

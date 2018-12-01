@@ -60,10 +60,14 @@ func main() {
 	})
 	r.Mount("/static", http.FileServer(http.Dir(path.Join(exDir, "dist"))))
 
-	r.Get("/api/burndown/*", jsonResponse(func(r *http.Request) (response, error) {
+	endpoint := jsonResponse(func(r *http.Request) (response, error) {
 		repo := chi.URLParam(r, "*")
 		return burndownCached("https://" + repo)
-	}))
+	})
+
+	r.Get("/api/analysis/project/*", endpoint)
+	r.Get("/api/analysis/people/*", endpoint)
+	r.Get("/api/analysis/files/*", endpoint)
 
 	fmt.Println("running...")
 	log.Fatal(http.ListenAndServe(":8080", r))
