@@ -31,6 +31,10 @@ const router = new Router({
       component: Project,
       name: 'project',
       props: true
+    },
+    {
+      path: '/:repo(.+)',
+      redirect: to => `/${to.params.repo.replace(/(.*)\/$/, '$1')}/burndown`
     }
   ]
 });
