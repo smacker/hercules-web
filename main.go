@@ -130,21 +130,39 @@ func burndown(uri string) (response, error) {
 		}, nil
 	}
 
-	backend := memory.NewStorage()
-	cloneOptions := &git.CloneOptions{URL: uri}
-	repository, err := git.Clone(backend, nil, cloneOptions)
-	if err != nil {
-		// FIXME it can be internal error too
+	repository, err := memClone(uri)
+	if err == git.ErrRepositoryNotExists {
 		return response{
 			Status: http.StatusBadRequest,
 			Error:  err.Error(),
 		}, nil
 	}
+	if err != nil {
+		return response{}, err
+	}
 
+	data, err := herculesRun(repository)
+	if err != nil {
+		return response{}, err
+	}
+
+	return response{
+		Status: http.StatusOK,
+		Data:   data,
+	}, nil
+}
+
+func memClone(uri string) (*git.Repository, error) {
+	backend := memory.NewStorage()
+	cloneOptions := &git.CloneOptions{URL: uri}
+	return git.Clone(backend, nil, cloneOptions)
+}
+
+func herculesRun(repository *git.Repository) (*burndownResponse, error) {
 	pipeline := hercules.NewPipeline(repository)
 	commits, err := pipeline.Commits(false)
 	if err != nil {
-		return response{}, err
+		return nil, err
 	}
 
 	facts := map[string]interface{}{
@@ -168,7 +186,7 @@ func burndown(uri string) (response, error) {
 
 	results, err := pipeline.Run(commits)
 	if err != nil {
-		return response{}, err
+		return nil, err
 	}
 	// it's super ugly, but hercules api isn't very friendly or I just didn't get it
 	var r leaves.BurndownResult
@@ -183,16 +201,13 @@ func burndown(uri string) (response, error) {
 
 	commonResult := results[nil].(*hercules.CommonAnalysisResult)
 
-	return response{
-		Status: http.StatusOK,
-		Data: burndownResponse{
-			Begin:      commonResult.BeginTime,
-			End:        commonResult.EndTime,
-			Project:    r.GlobalHistory,
-			Files:      r.FileHistories,
-			PeopleData: r.PeopleHistories,
-			PeopleList: facts[hercules.FactIdentityDetectorReversedPeopleDict].([]string),
-		},
+	return &burndownResponse{
+		Begin:      commonResult.BeginTime,
+		End:        commonResult.EndTime,
+		Project:    r.GlobalHistory,
+		Files:      r.FileHistories,
+		PeopleData: r.PeopleHistories,
+		PeopleList: facts[hercules.FactIdentityDetectorReversedPeopleDict].([]string),
 	}, nil
 }
 
