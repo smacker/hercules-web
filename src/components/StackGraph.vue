@@ -22,9 +22,27 @@
 </template>
 
 <script>
-import * as d3 from "d3";
-import Legend from "@/components/Legend";
+import { stack, area } from "d3-shape";
+import { range, max } from "d3-array";
+import { select } from "d3-selection";
+import { scaleTime, scaleLinear, scaleOrdinal } from "d3-scale";
+import { axisLeft, axisBottom } from "d3-axis";
 import { interpolateRdYlBu } from "d3-scale-chromatic";
+
+import Legend from "@/components/Legend";
+
+const d3 = {
+  range,
+  stack,
+  area,
+  max,
+  scaleTime,
+  scaleLinear,
+  scaleOrdinal,
+  select,
+  axisBottom,
+  axisLeft
+};
 
 const margin = { top: 5, right: 20, bottom: 30, left: 50 };
 
