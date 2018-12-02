@@ -30,6 +30,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(corsMiddleware)
+	r.Use(middleware.DefaultCompress)
 
 	r.Mount("/", static.Router())
 	r.Mount("/api/", api.Router())
