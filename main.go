@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -22,134 +21,21 @@ import (
 	"gopkg.in/src-d/hercules.v5/leaves"
 )
 
-var cache = goCache.New(time.Hour, 10*time.Minute)
-
 func main() {
-	exDir, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
+	storage := newCachedStorage()
+	static := newStaticServer()
+	api := newAPIServer(storage)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(func(h http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			headers := w.Header()
-			headers.Set("Access-Control-Allow-Origin", "*")
-			headers.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			if r.Method == "OPTIONS" {
-				return
-			}
-			h.ServeHTTP(w, r)
-		})
-	})
+	r.Use(corsMiddleware)
 
-	externalHost := os.Getenv("EXTERNAL_HOST")
-	if externalHost == "" {
-		externalHost = "http://127.0.0.1:8080"
-	}
-	script := `<script>window.hercules = {apiHost: '` + externalHost + `'}</script>`
-	indexHTML, err := ioutil.ReadFile(path.Join(exDir, "dist", "index.html"))
-	if err != nil {
-		panic(err)
-	}
-	indexHTML = bytes.Replace(indexHTML, []byte("</head>"), []byte(script+"</head>"), 1)
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write(indexHTML)
-	})
-	r.Mount("/static", http.FileServer(http.Dir(path.Join(exDir, "dist"))))
-
-	endpoint := jsonResponse(func(r *http.Request) (response, error) {
-		repo := chi.URLParam(r, "*")
-		return burndownCached("https://" + repo)
-	})
-
-	r.Get("/api/analysis/project/*", endpoint)
-	r.Get("/api/analysis/people/*", endpoint)
-	r.Get("/api/analysis/files/*", endpoint)
+	r.Mount("/", static.Router())
+	r.Mount("/api/", api.Router())
 
 	fmt.Println("running...")
 	log.Fatal(http.ListenAndServe(":8080", r))
-}
-
-type respFunc func(*http.Request) (response, error)
-
-func jsonResponse(f respFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		res, err := f(r)
-		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if err := json.NewEncoder(w).Encode(res); err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(res.Status)
-	}
-}
-
-type response struct {
-	Status int         `json:"-"`
-	Data   interface{} `json:"data"`
-	Error  string      `json:"error"`
-}
-
-type burndownResponse struct {
-	Begin      int64                `json:"begin"`
-	End        int64                `json:"end"`
-	Project    [][]int64            `json:"project"`
-	Files      map[string][][]int64 `json:"filesData"`
-	PeopleData [][][]int64          `json:"peopleData"`
-	PeopleList []string             `json:"peopleList"`
-}
-
-func burndownCached(uri string) (response, error) {
-	v, ok := cache.Get(uri)
-	if ok {
-		return v.(response), nil
-	}
-
-	res, err := burndown(uri)
-	if err != nil {
-		return response{}, err
-	}
-	cache.Set(uri, res, goCache.DefaultExpiration)
-
-	return res, nil
-}
-
-func burndown(uri string) (response, error) {
-	if err := validateRepo(uri); err != nil {
-		return response{
-			Status: http.StatusBadRequest,
-			Error:  err.Error(),
-		}, nil
-	}
-
-	repository, err := memClone(uri)
-	if err == git.ErrRepositoryNotExists {
-		return response{
-			Status: http.StatusBadRequest,
-			Error:  err.Error(),
-		}, nil
-	}
-	if err != nil {
-		return response{}, err
-	}
-
-	data, err := herculesRun(repository)
-	if err != nil {
-		return response{}, err
-	}
-
-	return response{
-		Status: http.StatusOK,
-		Data:   data,
-	}, nil
 }
 
 func memClone(uri string) (*git.Repository, error) {
@@ -158,7 +44,16 @@ func memClone(uri string) (*git.Repository, error) {
 	return git.Clone(backend, nil, cloneOptions)
 }
 
-func herculesRun(repository *git.Repository) (*burndownResponse, error) {
+type herculesResponse struct {
+	Begin      int64                `json:"begin"`
+	End        int64                `json:"end"`
+	Project    [][]int64            `json:"project"`
+	Files      map[string][][]int64 `json:"filesData"`
+	PeopleData [][][]int64          `json:"peopleData"`
+	PeopleList []string             `json:"peopleList"`
+}
+
+func herculesRun(repository *git.Repository) (*herculesResponse, error) {
 	pipeline := hercules.NewPipeline(repository)
 	commits, err := pipeline.Commits(false)
 	if err != nil {
@@ -201,7 +96,7 @@ func herculesRun(repository *git.Repository) (*burndownResponse, error) {
 
 	commonResult := results[nil].(*hercules.CommonAnalysisResult)
 
-	return &burndownResponse{
+	return &herculesResponse{
 		Begin:      commonResult.BeginTime,
 		End:        commonResult.EndTime,
 		Project:    r.GlobalHistory,
@@ -213,35 +108,305 @@ func herculesRun(repository *git.Repository) (*burndownResponse, error) {
 
 const repoSizeLimit = 102400 // kb
 
+type validationError struct {
+	msg string
+}
+
+func (e *validationError) Error() string {
+	return e.msg
+}
+
+func newValidationError(format string, args ...interface{}) *validationError {
+	return &validationError{msg: fmt.Sprintf(format, args...)}
+}
+
 func validateRepo(uri string) error {
 	if !strings.HasPrefix(uri, "https://github.com/") {
-		return errors.New("unsupported provider: only github is supported for now")
+		return newValidationError("unsupported provider: only github is supported for now")
 	}
 	apiURI := strings.Replace(uri, "https://github.com/", "https://api.github.com/repos/", 1)
 	resp, err := http.Get(apiURI)
 	if err != nil {
-		return fmt.Errorf("can't access github api: %s", err)
+		return newValidationError("can't access github api: %s", err)
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return errors.New("repository not found")
+		return newValidationError("repository not found")
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("can't access github api: %s", resp.Status)
+		return newValidationError("can't access github api: %s", resp.Status)
 	}
 	defer resp.Body.Close()
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("can't read github api response: %s", err)
+		return newValidationError("can't read github api response: %s", err)
 	}
 	var r struct{ Size int }
 	if err := json.Unmarshal(b, &r); err != nil {
-		return fmt.Errorf("can't parse github api response: %s", err)
+		return newValidationError("can't parse github api response: %s", err)
 	}
 	if r.Size == 0 {
-		return errors.New("incorrect repository")
+		return newValidationError("incorrect repository")
 	}
 	if r.Size > repoSizeLimit {
-		return errors.New("repository is too big")
+		return newValidationError("repository is too big")
 	}
 	return nil
+}
+
+//
+
+type storage interface {
+	BurndownProject(uri string) (*burndownProjectResp, error)
+	BurndownPeople(uri string) (*burndownPeopleResp, error)
+	BurndownFiles(uri string) (*burndownFilesResp, error)
+}
+
+type burndownResp struct {
+	Begin int64 `json:"begin"`
+	End   int64 `json:"end"`
+}
+
+func toBurndownResp(res *herculesResponse) burndownResp {
+	return burndownResp{
+		Begin: res.Begin,
+		End:   res.End,
+	}
+}
+
+type burndownProjectResp struct {
+	burndownResp
+	Project [][]int64 `json:"project"`
+}
+
+type burndownPeopleResp struct {
+	burndownResp
+	PeopleData [][][]int64 `json:"peopleData"`
+	PeopleList []string    `json:"peopleList"`
+}
+
+type burndownFilesResp struct {
+	burndownResp
+	Files map[string][][]int64 `json:"filesData"`
+}
+
+type cachedStorage struct {
+	cache *goCache.Cache
+}
+
+func newCachedStorage() *cachedStorage {
+	return &cachedStorage{cache: goCache.New(time.Hour, 6*time.Hour)}
+}
+
+func (s *cachedStorage) BurndownProject(uri string) (*burndownProjectResp, error) {
+	data, err := s.cached(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	return &burndownProjectResp{
+		burndownResp: toBurndownResp(data),
+		Project:      data.Project,
+	}, nil
+}
+
+func (s *cachedStorage) BurndownPeople(uri string) (*burndownPeopleResp, error) {
+	data, err := s.cached(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	return &burndownPeopleResp{
+		burndownResp: toBurndownResp(data),
+		PeopleData:   data.PeopleData,
+		PeopleList:   data.PeopleList,
+	}, nil
+}
+
+func (s *cachedStorage) BurndownFiles(uri string) (*burndownFilesResp, error) {
+	data, err := s.cached(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	return &burndownFilesResp{
+		burndownResp: toBurndownResp(data),
+		Files:        data.Files,
+	}, nil
+}
+
+func (s *cachedStorage) cached(uri string) (*herculesResponse, error) {
+	v, ok := s.cache.Get(uri)
+	if ok {
+		return v.(*herculesResponse), nil
+	}
+
+	if err := validateRepo(uri); err != nil {
+		return nil, err
+	}
+
+	repo, err := memClone(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := herculesRun(repo)
+	if err != nil {
+		return nil, err
+	}
+
+	s.cache.Set(uri, res, goCache.DefaultExpiration)
+
+	return res, nil
+}
+
+// http staff
+
+type staticServer struct {
+	exDir     string
+	indexHTML []byte
+}
+
+func newStaticServer() *staticServer {
+	exDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	externalHost := os.Getenv("EXTERNAL_HOST")
+	if externalHost == "" {
+		externalHost = "http://127.0.0.1:8080"
+	}
+	script := `<script>window.hercules = {apiHost: '` + externalHost + `'}</script>`
+	indexHTML, err := ioutil.ReadFile(path.Join(exDir, "dist", "index.html"))
+	if err != nil {
+		panic(err)
+	}
+	indexHTML = bytes.Replace(indexHTML, []byte("</head>"), []byte(script+"</head>"), 1)
+
+	return &staticServer{
+		exDir:     exDir,
+		indexHTML: indexHTML,
+	}
+}
+
+func (s *staticServer) Router() chi.Router {
+	r := chi.NewRouter()
+
+	r.Get("/", s.Index)
+	r.Mount("/static", http.FileServer(http.Dir(path.Join(s.exDir, "dist"))))
+
+	return r
+}
+
+func (s *staticServer) Index(w http.ResponseWriter, r *http.Request) {
+	w.Write(s.indexHTML)
+}
+
+type apiServer struct {
+	st storage
+}
+
+func newAPIServer(s storage) *apiServer {
+	return &apiServer{st: s}
+}
+
+func (s *apiServer) Router() chi.Router {
+	r := chi.NewRouter()
+
+	r.Get("/analysis/project/*", s.BurndownProject)
+	r.Get("/analysis/people/*", s.BurndownPeople)
+	r.Get("/analysis/files/*", s.BurndownFiles)
+
+	return r
+}
+
+func (s *apiServer) BurndownProject(w http.ResponseWriter, r *http.Request) {
+	data, err := s.st.BurndownProject(s.uri(r))
+	if err != nil {
+		s.handleError(w, err)
+		return
+	}
+
+	renderJSON(w, data)
+}
+
+func (s *apiServer) BurndownPeople(w http.ResponseWriter, r *http.Request) {
+	data, err := s.st.BurndownPeople(s.uri(r))
+	if err != nil {
+		s.handleError(w, err)
+		return
+	}
+
+	renderJSON(w, data)
+}
+
+func (s *apiServer) BurndownFiles(w http.ResponseWriter, r *http.Request) {
+	data, err := s.st.BurndownFiles(s.uri(r))
+	if err != nil {
+		s.handleError(w, err)
+		return
+	}
+
+	renderJSON(w, data)
+}
+
+func (s *apiServer) uri(r *http.Request) string {
+	repo := chi.URLParam(r, "*")
+	return "https://" + repo
+}
+
+func (s *apiServer) handleError(w http.ResponseWriter, err error) {
+	var res *errResponse
+	if err, ok := err.(*validationError); ok {
+		res = newErrResponse(err, http.StatusBadRequest)
+	} else if err == git.ErrRepositoryNotExists {
+		res = newErrResponse(err, http.StatusBadRequest)
+	} else {
+		res = newErrResponse(err, http.StatusInternalServerError)
+	}
+
+	renderJSON(w, res)
+}
+
+type errResponse struct {
+	Status int    `json:"-"`
+	Error  string `json:"error"`
+}
+
+func newErrResponse(err error, status int) *errResponse {
+	return &errResponse{
+		Status: status,
+		Error:  err.Error(),
+	}
+}
+
+func renderJSON(w http.ResponseWriter, d interface{}) {
+	status := http.StatusOK
+
+	if resp, ok := d.(*errResponse); ok {
+		status = resp.Status
+	}
+
+	buf := &bytes.Buffer{}
+	enc := json.NewEncoder(buf)
+	if err := enc.Encode(d); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	w.Write(buf.Bytes())
+}
+
+func corsMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headers := w.Header()
+		headers.Set("Access-Control-Allow-Origin", "*")
+		headers.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		if r.Method == "OPTIONS" {
+			return
+		}
+		h.ServeHTTP(w, r)
+	})
 }

@@ -139,13 +139,13 @@ export default {
           if (json.error) {
             return Promise.reject(json.error);
           }
-          if (json.data.project.length < 2) {
+          if (json.project.length < 2) {
             return Promise.reject("Not enough data");
           }
 
-          this.serverData = json.data.project;
-          this.begin = json.data.begin;
-          this.end = json.data.end;
+          this.serverData = json.project;
+          this.begin = json.begin;
+          this.end = json.end;
           this.resample = chooseDefaultResampling(this.begin, this.end);
         })
         .catch(e => (this.error = e))

@@ -170,19 +170,19 @@ export default {
           if (json.error) {
             return Promise.reject(json.error);
           }
-          if (json.data.peopleData.length < 2) {
+          if (json.peopleData.length < 2) {
             return Promise.reject("Not enough data");
           }
 
-          this.serverData = json.data.peopleData;
-          this.peopleList = json.data.peopleList;
+          this.serverData = json.peopleData;
+          this.peopleList = json.peopleList;
           this.overallData = math.transpose(
-            json.data.peopleList.map((_, i) => {
-              return sumByColumn(json.data.peopleData["" + i]);
+            json.peopleList.map((_, i) => {
+              return sumByColumn(json.peopleData["" + i]);
             })
           );
-          this.begin = json.data.begin;
-          this.end = json.data.end;
+          this.begin = json.begin;
+          this.end = json.end;
           this.resample = chooseDefaultResampling(this.begin, this.end);
         })
         .catch(e => (this.error = e))

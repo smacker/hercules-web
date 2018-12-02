@@ -142,12 +142,12 @@ export default {
           if (json.error) {
             return Promise.reject(json.error);
           }
-          const { tree, list } = filesToTree(Object.keys(json.data.filesData));
+          const { tree, list } = filesToTree(Object.keys(json.filesData));
           this.filesTree = tree;
           this.filesList = list;
-          this.serverData = json.data.filesData;
-          this.begin = json.data.begin;
-          this.end = json.data.end;
+          this.serverData = json.filesData;
+          this.begin = json.begin;
+          this.end = json.end;
           this.resample = chooseDefaultResampling(this.begin, this.end);
 
           this.currentFile = list[0];
