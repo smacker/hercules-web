@@ -92,6 +92,9 @@ export default {
 
   data() {
     return {
+      top: 0,
+      left: 0,
+
       tooltipShown: false,
       tooltipPosition: {},
       tooltipContent: ""
@@ -100,10 +103,12 @@ export default {
 
   mounted() {
     this.updateAxis();
+    this.updatePosition();
   },
 
   updated() {
     this.updateAxis();
+    this.updatePosition();
   },
 
   computed: {
@@ -183,6 +188,12 @@ export default {
   },
 
   methods: {
+    updatePosition() {
+      const rect = this.$el.getBoundingClientRect();
+      this.top = rect.top;
+      this.left = rect.left;
+    },
+
     updateAxis() {
       this.$nextTick(() => {
         d3.select(".axis__x").call(d3.axisBottom(this.x));
@@ -197,8 +208,8 @@ export default {
     },
     moveTooltip(e) {
       this.tooltipPosition = {
-        top: e.offsetY + 5 + "px",
-        left: e.offsetX + 5 + "px"
+        top: e.clientY + 5 - this.top + "px",
+        left: e.clientX + 5 - this.left + "px"
       };
     },
     hideTooltip() {
