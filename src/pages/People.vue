@@ -127,15 +127,13 @@ export default {
     },
 
     people() {
-      return this.allPeopleList
+      return this.peopleList
         .map((v, i) => {
-          if (!this.peopleList.includes(v)) {
-            return null;
-          }
+          const idx = this.allPeopleList.indexOf(v);
           const parts = v.split("|");
           const email = parts[parts.length - 1];
-          const color = interpolateRdYlBu(i / this.allPeopleList.length);
-          return { value: email, label: v, idx: i, color };
+          const color = interpolateRdYlBu(i / this.peopleList.length);
+          return { value: email, label: v, idx, color };
         })
         .filter(v => !!v);
     },
@@ -245,6 +243,17 @@ export default {
 
           this.peopleList = people;
           this.overallData = overallData;
+        })
+        .then(() => {
+          // sort by the value at the end of timeline
+          const endOverallData = this.overallData[this.overallData.length - 1];
+          const mapped = endOverallData.map((v, i) => ({ v, i }));
+          mapped.sort((a, b) => b.v - a.v);
+          // resort people and data accordingly
+          this.peopleList = mapped.map(v => this.peopleList[v.i]);
+          this.overallData = this.overallData.map(col => {
+            return mapped.map(v => col[v.i]);
+          });
         })
         .catch(e => (this.error = e))
         .then(() => (this.loading = false));
