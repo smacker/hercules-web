@@ -73,6 +73,7 @@ export default {
     return {
       loading: true,
       serverData: null,
+      allPeopleList: [],
       peopleList: [],
       overallData: null,
       begin: null,
@@ -126,12 +127,17 @@ export default {
     },
 
     people() {
-      return this.peopleList.map((v, i) => {
-        const parts = v.split("|");
-        const email = parts[parts.length - 1];
-        const color = interpolateRdYlBu(i / this.peopleList.length);
-        return { value: email, label: v, idx: i, color };
-      });
+      return this.allPeopleList
+        .map((v, i) => {
+          if (!this.peopleList.includes(v)) {
+            return null;
+          }
+          const parts = v.split("|");
+          const email = parts[parts.length - 1];
+          const color = interpolateRdYlBu(i / this.allPeopleList.length);
+          return { value: email, label: v, idx: i, color };
+        })
+        .filter(v => !!v);
     },
 
     resampleOptions() {
@@ -175,6 +181,7 @@ export default {
           }
 
           this.serverData = json.peopleData;
+          this.allPeopleList = json.peopleList;
           this.peopleList = json.peopleList;
           this.overallData = math.transpose(
             json.peopleList.map((_, i) => {
@@ -184,6 +191,60 @@ export default {
           this.begin = json.begin;
           this.end = json.end;
           this.resample = chooseDefaultResampling(this.begin, this.end);
+
+          // minimum number of people to apply grouping
+          const minPeople = 10;
+          if (this.peopleList.length <= minPeople) {
+            return;
+          }
+
+          // max total overall value
+          const max = this.overallData.reduce((acc, col) => {
+            const sum = col.reduce((a, b) => a + b, 0);
+            if (sum > acc) {
+              return sum;
+            }
+            return acc;
+          }, 0);
+
+          const threshold = max * 0.01;
+          // only people that contributed more than threshold
+          const keep = this.overallData.reduce((acc, col) => {
+            return acc.concat(
+              col.reduce((innerAcc, v, i) => {
+                if (!acc.includes(i) && v > threshold) {
+                  return innerAcc.concat([i]);
+                }
+                return innerAcc;
+              }, [])
+            );
+          }, []);
+
+          // drop grouping if there are too few survived people
+          if (keep.length < minPeople) {
+            return;
+          }
+
+          const overallData = this.overallData.map(col => {
+            let restVal = 0;
+
+            return col
+              .filter((v, i) => {
+                if (keep.includes(i)) {
+                  return true;
+                }
+
+                restVal += v;
+                return false;
+              })
+              .concat([restVal]);
+          });
+          const people = this.peopleList
+            .filter((_, i) => keep.includes(i))
+            .concat(["Others"]);
+
+          this.peopleList = people;
+          this.overallData = overallData;
         })
         .catch(e => (this.error = e))
         .then(() => (this.loading = false));
