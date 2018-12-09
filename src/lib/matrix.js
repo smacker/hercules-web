@@ -1,15 +1,22 @@
-import math from './math';
 import isEqual from 'date-fns/is_equal';
 import differenceInDays from 'date-fns/difference_in_days';
 
-export function toMatrix(data) {
-  const matrix = math.zeros(data.length, data.length);
-  data.forEach((row, i) => {
-    row.forEach((cell, j) => {
-      matrix.set([i, j], cell);
-    });
-  });
-  return matrix;
+export function transpose(matrix) {
+  const rows = matrix.length;
+  const cols = matrix[0].length;
+  const newMatrix = [];
+
+  for (let j = 0; j < cols; j++) {
+    newMatrix[j] = Array(rows);
+  }
+
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      newMatrix[j][i] = matrix[i][j];
+    }
+  }
+
+  return newMatrix;
 }
 
 export function sumByColumn(matrix) {
@@ -23,8 +30,11 @@ export function sumByColumn(matrix) {
 }
 
 export function interpolate(matrix, granularity, sampling) {
-  const shape = matrix.size();
-  const daily = math.zeros(shape[0] * granularity, shape[1] * sampling);
+  const shape = [matrix.length, matrix[0].length];
+  const daily = Array(shape[0] * granularity);
+  for (let i = 0; i < daily.length; i++) {
+    daily[i] = Array(shape[1] * sampling).fill(0);
+  }
 
   for (let y = 0; y < shape[0]; y++) {
     for (let x = 0; x < shape[1]; x++) {
@@ -37,20 +47,20 @@ export function interpolate(matrix, granularity, sampling) {
         if (startVal === 0) {
           return;
         }
-        const k = matrix.get([y, x]) / startVal;
+        const k = matrix[y][x] / startVal;
         const scale = (x + 1) * sampling - startIndex;
-        math.range(y * granularity, (y + 1) * granularity).forEach(i => {
-          const initial = daily.get([i, startIndex - 1]);
-          math.range(startIndex, (x + 1) * sampling).forEach(j => {
+        for (let i = y * granularity; i < (y + 1) * granularity; i++) {
+          const initial = daily[i][startIndex - 1];
+          for (let j = startIndex; j < (x + 1) * sampling; j++) {
             const val =
               initial * (1 + ((k - 1) * (j - startIndex + 1)) / scale);
-            daily.set([i, j], val);
-          });
-        });
+            daily[i][j] = val;
+          }
+        }
       };
 
       const grow = (finishIndex, finishVal) => {
-        const initial = x > 0 ? matrix.get([y, x - 1]) : 0;
+        const initial = x > 0 ? matrix[y][x - 1] : 0;
         let startIndex = x * sampling;
         if (startIndex < y * granularity) {
           startIndex = y * granularity;
@@ -59,41 +69,40 @@ export function interpolate(matrix, granularity, sampling) {
           return;
         }
         const avg = (finishVal - initial) / (finishIndex - startIndex);
-        math.range(x * sampling, finishIndex).forEach(j => {
-          math.range(startIndex, j + 1).forEach(i => {
-            daily.set([i, j], avg);
-          });
-        });
-        math.range(x * sampling, finishIndex).forEach(j => {
-          math.range(y * granularity, x * sampling).forEach(i => {
-            daily.set([i, j], daily.get([i, j - 1]));
-          });
-        });
+        for (let j = x * sampling; j < finishIndex; j++) {
+          for (let i = startIndex; i < j + 1; i++) {
+            daily[i][j] = avg;
+          }
+        }
+        for (let j = x * sampling; j < finishIndex; j++) {
+          for (let i = y * granularity; i < x * sampling; i++) {
+            daily[i][j] = daily[i][j - 1];
+          }
+        }
       };
 
       if ((y + 1) * granularity >= (x + 1) * sampling) {
         if (y * granularity <= x * sampling) {
-          grow((x + 1) * sampling, matrix.get([y, x]));
+          grow((x + 1) * sampling, matrix[y][x]);
         } else if ((x + 1) * sampling > y * granularity) {
-          grow((x + 1) * sampling, matrix.get([y, x]));
+          grow((x + 1) * sampling, matrix[y][x]);
           // FIXME figure out why we need it
-          const avg =
-            matrix.get([y, x]) / ((x + 1) * sampling - y * granularity);
-          math.range(y * granularity, (x + 1) * sampling).forEach(j => {
-            math.range(y * granularity, j + 1).forEach(i => {
-              daily.set([i, j], avg);
-            });
-          });
+          const avg = matrix[y][x] / ((x + 1) * sampling - y * granularity);
+          for (let j = y * granularity; j < (x + 1) * sampling; j++) {
+            for (let i = y * granularity; i < j + 1; i++) {
+              daily[i][j] = avg;
+            }
+          }
         }
       } else if ((y + 1) * granularity >= x * sampling) {
-        const v1 = matrix.get([y, x - 1]);
-        const v2 = matrix.get([y, x]);
+        const v1 = matrix[y][x - 1];
+        const v2 = matrix[y][x];
         const delta = (y + 1) * granularity - x * sampling;
         let previous = 0;
         let scale;
         if (x > 0 && (x - 1) * sampling >= y * granularity) {
           if (x > 1) {
-            previous = matrix.get([y, x - 2]);
+            previous = matrix[y][x - 2];
           }
           scale = sampling;
         } else {
@@ -103,10 +112,9 @@ export function interpolate(matrix, granularity, sampling) {
         if (v2 > peak) {
           // we need to adjust the peak, it may not be less than the decayed value
           if (x < shape[1] - 1) {
-            const k = (v2 - matrix.get([y, x + 1])) / sampling;
+            const k = (v2 - matrix[y][x + 1]) / sampling;
             peak =
-              matrix.get([y, x]) +
-              k * ((x + 1) * sampling - (y + 1) * granularity);
+              matrix[y][x] + k * ((x + 1) * sampling - (y + 1) * granularity);
           } else {
             peak = v2;
           }
@@ -114,7 +122,7 @@ export function interpolate(matrix, granularity, sampling) {
         grow((y + 1) * granularity, peak);
         decay((y + 1) * granularity, peak);
       } else {
-        decay(x * sampling, matrix.get([y, x - 1]));
+        decay(x * sampling, matrix[y][x - 1]);
       }
     }
   }
@@ -123,28 +131,23 @@ export function interpolate(matrix, granularity, sampling) {
 }
 
 function aggregate(datesRange, { begin, data }, granularity, sampling) {
-  const daily = interpolate(
-    math.transpose(toMatrix(data)),
-    granularity,
-    sampling
-  );
-  const dailyShape = daily.size();
-  const dailyData = daily._data;
+  const daily = interpolate(transpose(data), granularity, sampling);
+  const dailyShape = [daily.length, daily[0].length];
 
-  const matrix = math.zeros(datesRange.length - 1, dailyShape[1]);
+  const matrix = Array(datesRange.length - 1);
 
   for (let i = 1; i < datesRange.length; i++) {
     const istart = differenceInDays(datesRange[i - 1], begin);
     const ifinish = differenceInDays(datesRange[i], begin);
 
-    const val = [];
+    const val = Array(dailyShape[1]);
     for (let z = istart; z < ifinish; z++) {
       for (let j = 0; j < dailyShape[1]; j++) {
-        val[j] = (val[j] || 0) + dailyData[z][j];
+        val[j] = (val[j] || 0) + daily[z][j];
       }
     }
 
-    matrix.subset(math.index(i - 1, math.range(0, dailyShape[1])), val);
+    matrix[i - 1] = val;
   }
   return matrix;
 }
@@ -191,8 +194,9 @@ export function toMonths(
     granularity,
     sampling
   );
+
   return {
-    data: math.transpose(matrix).toArray(),
+    data: transpose(matrix),
     keys: datesRange
       .slice(0, datesRange.length - 1)
       .map(i => monthNames[i.getMonth()] + ' ' + i.getFullYear())
@@ -221,7 +225,7 @@ export function toYears({ begin, end, data }, granularity = 30, sampling = 30) {
   );
 
   return {
-    data: math.transpose(matrix).toArray(),
+    data: transpose(matrix),
     keys: datesRange.slice(0, datesRange.length - 1).map(i => i.getFullYear())
   };
 }

@@ -45,7 +45,6 @@ import Responsive from "@/components/Responsive";
 import StackGraph from "@/components/StackGraph";
 
 import { fetch } from "@/lib/api";
-import math from "@/lib/math";
 import { toMonths, toYears } from "@/lib/matrix";
 import { chooseDefaultResampling } from "@/lib/time";
 
@@ -103,7 +102,7 @@ export default {
         case "raw":
           return {
             data,
-            keys: math.range(0, data.length).toArray()
+            keys: Array.from(Array(data.length).keys())
           };
 
         case "month":

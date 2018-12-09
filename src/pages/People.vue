@@ -50,8 +50,7 @@ import Responsive from "@/components/Responsive";
 import StackGraph from "@/components/StackGraph";
 
 import { fetch } from "@/lib/api";
-import math from "@/lib/math";
-import { toMonths, toYears, sumByColumn } from "@/lib/matrix";
+import { toMonths, toYears, sumByColumn, transpose } from "@/lib/matrix";
 import { chooseDefaultResampling } from "@/lib/time";
 import differenceInMonths from "date-fns/difference_in_months";
 import differenceInYears from "date-fns/difference_in_years";
@@ -107,7 +106,7 @@ export default {
         default:
           return {
             data,
-            keys: math.range(0, data.length).toArray()
+            keys: Array.from(Array(data.length).keys())
           };
       }
     },
@@ -179,7 +178,7 @@ export default {
           this.serverData = json.peopleData;
           this.allPeopleList = json.peopleList;
           this.peopleList = json.peopleList;
-          this.overallData = math.transpose(
+          this.overallData = transpose(
             json.peopleList.map((_, i) => {
               return sumByColumn(json.peopleData["" + i]);
             })

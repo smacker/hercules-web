@@ -43,7 +43,6 @@ import Responsive from "@/components/Responsive";
 import StackGraph from "@/components/StackGraph";
 
 import { fetch } from "@/lib/api";
-import math from "@/lib/math";
 import { toMonths, toYears } from "@/lib/matrix";
 import { chooseDefaultResampling } from "@/lib/time";
 import differenceInMonths from "date-fns/difference_in_months";
@@ -81,7 +80,7 @@ export default {
         case "raw":
           return {
             data: this.serverData,
-            keys: math.range(0, this.serverData.length).toArray()
+            keys: Array.from(Array(this.serverData.length).keys())
           };
 
         case "month":
