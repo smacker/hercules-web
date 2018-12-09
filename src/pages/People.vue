@@ -130,10 +130,8 @@ export default {
       return this.peopleList
         .map((v, i) => {
           const idx = this.allPeopleList.indexOf(v);
-          const parts = v.split("|");
-          const email = parts[parts.length - 1];
           const color = interpolateRdYlBu(i / this.peopleList.length);
-          return { value: email, label: v, idx, color };
+          return { value: v, label: v, idx, color };
         })
         .filter(v => !!v);
     },
