@@ -197,7 +197,7 @@ type cachedStorage struct {
 var _ storage = &cachedStorage{}
 
 func newCachedStorage() *cachedStorage {
-	return &cachedStorage{cache: goCache.New(time.Hour, 6*time.Hour)}
+	return &cachedStorage{cache: goCache.New(6*time.Hour, time.Hour)}
 }
 
 func (s *cachedStorage) BurndownProject(uri string) (*burndownProjectResp, error) {
