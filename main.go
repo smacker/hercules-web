@@ -194,6 +194,8 @@ type cachedStorage struct {
 	cache *goCache.Cache
 }
 
+var _ storage = &cachedStorage{}
+
 func newCachedStorage() *cachedStorage {
 	return &cachedStorage{cache: goCache.New(time.Hour, 6*time.Hour)}
 }
@@ -258,6 +260,131 @@ func (s *cachedStorage) cached(uri string) (*herculesResponse, error) {
 	s.cache.Set(uri, res, goCache.DefaultExpiration)
 
 	return res, nil
+}
+
+type diskStorage struct {
+	root string
+}
+
+func newDiskStorage(root string) (*diskStorage, error) {
+	info, err := os.Stat(root)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("'%s' must be a directory", root)
+	}
+
+	cacheRoot := path.Join(root, "hercules-cache")
+	if err := os.MkdirAll(cacheRoot, os.ModePerm); err != nil {
+		return nil, err
+	}
+
+	return &diskStorage{root: cacheRoot}, nil
+}
+
+func (s *diskStorage) BurndownProject(uri string) (*burndownProjectResp, error) {
+	data, err := s.cached(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	return &burndownProjectResp{
+		burndownResp: toBurndownResp(data),
+		Project:      data.Project,
+	}, nil
+}
+
+func (s *diskStorage) BurndownPeople(uri string) (*burndownPeopleResp, error) {
+	data, err := s.cached(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	return &burndownPeopleResp{
+		burndownResp: toBurndownResp(data),
+		PeopleData:   data.PeopleData,
+		PeopleList:   data.PeopleList,
+	}, nil
+}
+
+func (s *diskStorage) BurndownFiles(uri string) (*burndownFilesResp, error) {
+	data, err := s.cached(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	return &burndownFilesResp{
+		burndownResp: toBurndownResp(data),
+		Files:        data.Files,
+	}, nil
+}
+
+func (s *diskStorage) cached(uri string) (*herculesResponse, error) {
+	resultFile := path.Join(s.root, uriToFilename(uri))
+
+	info, err := os.Stat(resultFile)
+	if err == nil {
+		if info.IsDir() {
+			return nil, fmt.Errorf("'%s' is a directory but should be file", resultFile)
+		}
+
+		b, err := ioutil.ReadFile(resultFile)
+		if err != nil {
+			return nil, err
+		}
+
+		var res herculesResponse
+		if err = json.Unmarshal(b, &res); err != nil {
+			return nil, err
+		}
+
+		return &res, err
+	}
+	if os.IsNotExist(err) {
+		if err := validateRepo(uri); err != nil {
+			return nil, err
+		}
+
+		repo, err := memClone(uri)
+		if err != nil {
+			return nil, err
+		}
+
+		res, err := herculesRun(repo)
+		if err != nil {
+			return nil, err
+		}
+
+		f, err := os.Create(resultFile)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err := json.Marshal(res)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = f.Write(b)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	}
+
+	return nil, err
+}
+
+func uriToFilename(uri string) string {
+	charsToReplace := []string{"/", ":", "@", "#"}
+
+	for _, c := range charsToReplace {
+		uri = strings.Replace(uri, c, "_", -1)
+	}
+
+	return uri
 }
 
 // http staff
@@ -358,8 +485,8 @@ func (s *apiServer) uri(r *http.Request) string {
 
 func (s *apiServer) handleError(w http.ResponseWriter, err error) {
 	var res *errResponse
-	if err, ok := err.(*validationError); ok {
-		res = newErrResponse(err, http.StatusBadRequest)
+	if verr, ok := err.(*validationError); ok {
+		res = newErrResponse(verr, http.StatusBadRequest)
 	} else if err == git.ErrRepositoryNotExists {
 		res = newErrResponse(err, http.StatusBadRequest)
 	} else {
