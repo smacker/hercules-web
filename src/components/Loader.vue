@@ -3,7 +3,8 @@
     <div class="loading__spinner">
       <spinner/>
     </div>
-    <div class="loading__text">Fetching &amp; calculating....
+    <div class="loading__text">
+      {{message}}
       <br>Please wait, it can take few seconds.
     </div>
   </div>
@@ -13,8 +14,22 @@
 import Spinner from "@/components/Spinner";
 
 export default {
+  props: {
+    status: {
+      type: String
+    }
+  },
   components: {
     Spinner
+  },
+  computed: {
+    message() {
+      if (this.status) {
+        return `${this.status}...`;
+      }
+
+      return "Fetching & calculating....";
+    }
   }
 };
 </script>

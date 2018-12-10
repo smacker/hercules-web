@@ -5,7 +5,7 @@
     <error :msg="error" v-if="error"/>
 
     <div class="page-body" v-if="!error">
-      <loader v-if="loading"/>
+      <loader v-if="loading" :status="loadingStatus"/>
 
       <div class="content-wrapper" v-if="!loading">
         <files-tree
@@ -43,8 +43,8 @@ import Error from "@/components/Error";
 import Loader from "@/components/Loader";
 import Responsive from "@/components/Responsive";
 import StackGraph from "@/components/StackGraph";
+import analysisMixin from "./analysisMixin";
 
-import { fetch } from "@/lib/api";
 import { toMonths, toYears } from "@/lib/matrix";
 import { chooseDefaultResampling } from "@/lib/time";
 
@@ -52,8 +52,6 @@ import { filesToTree } from "@/lib/files";
 import FilesTree from "@/components/FilesTree";
 
 const initialState = {
-  loading: true,
-  error: null,
   filesTree: null,
   filesList: null,
   currentFile: null,
@@ -71,6 +69,7 @@ function resetState(instance) {
 }
 
 export default {
+  mixins: [analysisMixin],
   props: ["repo"],
 
   components: {
@@ -136,23 +135,17 @@ export default {
     fetchData() {
       resetState(this);
 
-      fetch(`/api/analysis/files/${this.repo}`)
-        .then(json => {
-          if (json.error) {
-            return Promise.reject(json.error);
-          }
-          const { tree, list } = filesToTree(Object.keys(json.filesData));
-          this.filesTree = tree;
-          this.filesList = list;
-          this.serverData = json.filesData;
-          this.begin = json.begin;
-          this.end = json.end;
-          this.resample = chooseDefaultResampling(this.begin, this.end);
+      this.fetch(`/api/analysis/files/${this.repo}`, json => {
+        const { tree, list } = filesToTree(Object.keys(json.filesData));
+        this.filesTree = tree;
+        this.filesList = list;
+        this.serverData = json.filesData;
+        this.begin = json.begin;
+        this.end = json.end;
+        this.resample = chooseDefaultResampling(this.begin, this.end);
 
-          this.currentFile = list[0];
-        })
-        .catch(e => (this.error = e))
-        .then(() => (this.loading = false));
+        this.currentFile = list[0];
+      });
     },
 
     selectFile(file) {

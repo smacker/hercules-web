@@ -92,7 +92,7 @@ func herculesRun(repository *git.Repository) (*herculesResponse, error) {
 
 	facts := map[string]interface{}{
 		hercules.ConfigPipelineCommits: commits,
-		// maybe move to another endpoint? but actually it's cheap enough compare to downloading repo
+
 		leaves.ConfigBurndownGranularity: 30,
 		leaves.ConfigBurndownSampling:    30,
 		leaves.ConfigBurndownTrackPeople: true,
@@ -186,11 +186,11 @@ func validateRepo(uri string) error {
 type repoStatus string
 
 const (
-	statusPending   repoStatus = "pending"
-	statusCloning   repoStatus = "cloning"
-	statusAnalyzing repoStatus = "analyzing"
-	statusFinished  repoStatus = "finished"
-	statusError     repoStatus = "error"
+	statusPending   repoStatus = "Analysis pending"
+	statusCloning   repoStatus = "Repository cloning"
+	statusAnalyzing repoStatus = "Analyzing"
+	statusFinished  repoStatus = "Analysis finished"
+	statusError     repoStatus = "Error"
 )
 
 var errURINotFound = fmt.Errorf("uri not found")

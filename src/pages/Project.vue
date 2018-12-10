@@ -14,7 +14,7 @@
     <error :msg="error" v-if="error"/>
 
     <div class="page-body" v-if="!error">
-      <loader v-if="loading"/>
+      <loader v-if="loading" :status="loadingStatus"/>
 
       <Responsive v-if="data" class="graph-wrapper">
         <StackGraph
@@ -41,14 +41,15 @@ import Error from "@/components/Error";
 import Loader from "@/components/Loader";
 import Responsive from "@/components/Responsive";
 import StackGraph from "@/components/StackGraph";
+import analysisMixin from "./analysisMixin";
 
-import { fetch } from "@/lib/api";
 import { toMonths, toYears } from "@/lib/matrix";
 import { chooseDefaultResampling } from "@/lib/time";
 import differenceInMonths from "date-fns/difference_in_months";
 import differenceInYears from "date-fns/difference_in_years";
 
 export default {
+  mixins: [analysisMixin],
   props: ["repo"],
 
   components: {
@@ -61,12 +62,10 @@ export default {
 
   data() {
     return {
-      loading: true,
       resample: "raw",
       serverData: null,
       begin: null,
-      end: null,
-      error: null
+      end: null
     };
   },
 
@@ -130,25 +129,16 @@ export default {
   methods: {
     fetchData() {
       this.serverData = null;
-      this.loading = true;
-      this.error = null;
+      this.fetch(`/api/analysis/project/${this.repo}`, json => {
+        if (json.project.length < 2) {
+          return Promise.reject("Not enough data");
+        }
 
-      fetch(`/api/analysis/project/${this.repo}`)
-        .then(json => {
-          if (json.error) {
-            return Promise.reject(json.error);
-          }
-          if (json.project.length < 2) {
-            return Promise.reject("Not enough data");
-          }
-
-          this.serverData = json.project;
-          this.begin = json.begin;
-          this.end = json.end;
-          this.resample = chooseDefaultResampling(this.begin, this.end);
-        })
-        .catch(e => (this.error = e))
-        .then(() => (this.loading = false));
+        this.serverData = json.project;
+        this.begin = json.begin;
+        this.end = json.end;
+        this.resample = chooseDefaultResampling(this.begin, this.end);
+      });
     }
   }
 };
