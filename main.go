@@ -183,10 +183,24 @@ func validateRepo(uri string) error {
 
 //
 
+type repoStatus string
+
+const (
+	statusPending   repoStatus = "pending"
+	statusCloning   repoStatus = "cloning"
+	statusAnalyzing repoStatus = "analyzing"
+	statusFinished  repoStatus = "finished"
+	statusError     repoStatus = "error"
+)
+
+var errURINotFound = fmt.Errorf("uri not found")
+
 type storage interface {
-	BurndownProject(uri string) (*burndownProjectResp, error)
-	BurndownPeople(uri string) (*burndownPeopleResp, error)
-	BurndownFiles(uri string) (*burndownFilesResp, error)
+	BurndownProject(uri string) (*burndownProjectResp, repoStatus, error)
+	BurndownPeople(uri string) (*burndownPeopleResp, repoStatus, error)
+	BurndownFiles(uri string) (*burndownFilesResp, repoStatus, error)
+
+	Save(uri string, res *herculesResponse, status repoStatus, err error) error
 }
 
 type burndownResp struct {
@@ -217,6 +231,13 @@ type burndownFilesResp struct {
 	Files map[string][][]int64 `json:"filesData"`
 }
 
+// used by mem&disk storages
+type analysisResult struct {
+	Result *herculesResponse
+	Status repoStatus
+	Err    error
+}
+
 type cachedStorage struct {
 	cache *goCache.Cache
 }
@@ -227,66 +248,61 @@ func newCachedStorage() *cachedStorage {
 	return &cachedStorage{cache: goCache.New(6*time.Hour, time.Hour)}
 }
 
-func (s *cachedStorage) BurndownProject(uri string) (*burndownProjectResp, error) {
-	data, err := s.cached(uri)
-	if err != nil {
-		return nil, err
+func (s *cachedStorage) BurndownProject(uri string) (*burndownProjectResp, repoStatus, error) {
+	data, status, err := s.get(uri)
+	if data == nil || err != nil {
+		return nil, status, err
 	}
 
 	return &burndownProjectResp{
 		burndownResp: toBurndownResp(data),
 		Project:      data.Project,
-	}, nil
+	}, status, nil
 }
 
-func (s *cachedStorage) BurndownPeople(uri string) (*burndownPeopleResp, error) {
-	data, err := s.cached(uri)
-	if err != nil {
-		return nil, err
+func (s *cachedStorage) BurndownPeople(uri string) (*burndownPeopleResp, repoStatus, error) {
+	data, status, err := s.get(uri)
+	if data == nil || err != nil {
+		return nil, status, err
 	}
 
 	return &burndownPeopleResp{
 		burndownResp: toBurndownResp(data),
 		PeopleData:   data.PeopleData,
 		PeopleList:   data.PeopleList,
-	}, nil
+	}, status, nil
 }
 
-func (s *cachedStorage) BurndownFiles(uri string) (*burndownFilesResp, error) {
-	data, err := s.cached(uri)
-	if err != nil {
-		return nil, err
+func (s *cachedStorage) BurndownFiles(uri string) (*burndownFilesResp, repoStatus, error) {
+	data, status, err := s.get(uri)
+	if data == nil || err != nil {
+		return nil, status, err
 	}
 
 	return &burndownFilesResp{
 		burndownResp: toBurndownResp(data),
 		Files:        data.Files,
-	}, nil
+	}, status, nil
 }
 
-func (s *cachedStorage) cached(uri string) (*herculesResponse, error) {
+func (s *cachedStorage) Save(uri string, res *herculesResponse, status repoStatus, err error) error {
+	s.cache.Set(uri, &analysisResult{
+		Status: status,
+		Result: res,
+		Err:    err,
+	}, goCache.DefaultExpiration)
+
+	return nil
+}
+
+func (s *cachedStorage) get(uri string) (*herculesResponse, repoStatus, error) {
 	v, ok := s.cache.Get(uri)
-	if ok {
-		return v.(*herculesResponse), nil
+	if !ok {
+		return nil, statusPending, errURINotFound
 	}
 
-	if err := validateRepo(uri); err != nil {
-		return nil, err
-	}
-
-	repo, err := memClone(uri)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := herculesRun(repo)
-	if err != nil {
-		return nil, err
-	}
-
-	s.cache.Set(uri, res, goCache.DefaultExpiration)
-
-	return res, nil
+	item := v.(*analysisResult)
+	return item.Result, item.Status, item.Err
 }
 
 type diskStorage struct {
@@ -310,98 +326,92 @@ func newDiskStorage(root string) (*diskStorage, error) {
 	return &diskStorage{root: cacheRoot}, nil
 }
 
-func (s *diskStorage) BurndownProject(uri string) (*burndownProjectResp, error) {
-	data, err := s.cached(uri)
-	if err != nil {
-		return nil, err
+func (s *diskStorage) BurndownProject(uri string) (*burndownProjectResp, repoStatus, error) {
+	data, status, err := s.read(uri)
+	if data == nil || err != nil {
+		return nil, status, err
 	}
 
 	return &burndownProjectResp{
 		burndownResp: toBurndownResp(data),
 		Project:      data.Project,
-	}, nil
+	}, status, nil
 }
 
-func (s *diskStorage) BurndownPeople(uri string) (*burndownPeopleResp, error) {
-	data, err := s.cached(uri)
-	if err != nil {
-		return nil, err
+func (s *diskStorage) BurndownPeople(uri string) (*burndownPeopleResp, repoStatus, error) {
+	data, status, err := s.read(uri)
+	if data == nil || err != nil {
+		return nil, status, err
 	}
 
 	return &burndownPeopleResp{
 		burndownResp: toBurndownResp(data),
 		PeopleData:   data.PeopleData,
 		PeopleList:   data.PeopleList,
-	}, nil
+	}, status, nil
 }
 
-func (s *diskStorage) BurndownFiles(uri string) (*burndownFilesResp, error) {
-	data, err := s.cached(uri)
-	if err != nil {
-		return nil, err
+func (s *diskStorage) BurndownFiles(uri string) (*burndownFilesResp, repoStatus, error) {
+	data, status, err := s.read(uri)
+	if data == nil || err != nil {
+		return nil, status, err
 	}
 
 	return &burndownFilesResp{
 		burndownResp: toBurndownResp(data),
 		Files:        data.Files,
-	}, nil
+	}, status, nil
 }
 
-func (s *diskStorage) cached(uri string) (*herculesResponse, error) {
-	resultFile := path.Join(s.root, uriToFilename(uri))
-
-	info, err := os.Stat(resultFile)
-	if err == nil {
-		if info.IsDir() {
-			return nil, fmt.Errorf("'%s' is a directory but should be file", resultFile)
-		}
-
-		b, err := ioutil.ReadFile(resultFile)
-		if err != nil {
-			return nil, err
-		}
-
-		var res herculesResponse
-		if err = json.Unmarshal(b, &res); err != nil {
-			return nil, err
-		}
-
-		return &res, err
-	}
+func (s *diskStorage) read(uri string) (*herculesResponse, repoStatus, error) {
+	path := path.Join(s.root, uriToFilename(uri))
+	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		if err := validateRepo(uri); err != nil {
-			return nil, err
-		}
-
-		repo, err := memClone(uri)
-		if err != nil {
-			return nil, err
-		}
-
-		res, err := herculesRun(repo)
-		if err != nil {
-			return nil, err
-		}
-
-		f, err := os.Create(resultFile)
-		if err != nil {
-			return nil, err
-		}
-
-		b, err := json.Marshal(res)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = f.Write(b)
-		if err != nil {
-			return nil, err
-		}
-
-		return res, nil
+		return nil, statusPending, errURINotFound
+	}
+	if err != nil {
+		return nil, statusPending, err
 	}
 
-	return nil, err
+	if info.IsDir() {
+		return nil, statusPending, fmt.Errorf("'%s' is a directory but should be file", path)
+	}
+
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, statusPending, err
+	}
+
+	var res analysisResult
+	if err = json.Unmarshal(b, &res); err != nil {
+		return nil, statusPending, err
+	}
+
+	return res.Result, res.Status, nil
+}
+
+func (s *diskStorage) Save(uri string, res *herculesResponse, status repoStatus, err error) error {
+	path := path.Join(s.root, uriToFilename(uri))
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	b, err := json.Marshal(analysisResult{
+		Status: status,
+		Result: res,
+		Err:    err,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = f.Write(b)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func uriToFilename(uri string) string {
@@ -476,38 +486,103 @@ func (s *apiServer) Router() chi.Router {
 }
 
 func (s *apiServer) BurndownProject(w http.ResponseWriter, r *http.Request) {
-	data, err := s.st.BurndownProject(s.uri(r))
+	u := s.uri(r)
+	data, status, err := s.st.BurndownProject(u)
+	err = s.handleNoURIFound(u, err)
 	if err != nil {
 		s.handleError(w, err)
 		return
 	}
 
-	renderJSON(w, data)
+	if data != nil {
+		renderJSON(w, data)
+		return
+	}
+
+	renderJSON(w, newStatusResponse(status))
 }
 
 func (s *apiServer) BurndownPeople(w http.ResponseWriter, r *http.Request) {
-	data, err := s.st.BurndownPeople(s.uri(r))
+	u := s.uri(r)
+	data, status, err := s.st.BurndownPeople(u)
+	err = s.handleNoURIFound(u, err)
 	if err != nil {
 		s.handleError(w, err)
 		return
 	}
 
-	renderJSON(w, data)
+	if data != nil {
+		renderJSON(w, data)
+		return
+	}
+
+	renderJSON(w, newStatusResponse(status))
 }
 
 func (s *apiServer) BurndownFiles(w http.ResponseWriter, r *http.Request) {
-	data, err := s.st.BurndownFiles(s.uri(r))
+	u := s.uri(r)
+	data, status, err := s.st.BurndownFiles(u)
+	err = s.handleNoURIFound(u, err)
 	if err != nil {
 		s.handleError(w, err)
 		return
 	}
 
-	renderJSON(w, data)
+	if data != nil {
+		renderJSON(w, data)
+		return
+	}
+
+	renderJSON(w, newStatusResponse(status))
 }
 
 func (s *apiServer) uri(r *http.Request) string {
 	repo := chi.URLParam(r, "*")
 	return "https://" + repo
+}
+
+func (s *apiServer) handleNoURIFound(uri string, err error) error {
+	if err != errURINotFound {
+		return err
+	}
+
+	if err := s.st.Save(uri, nil, statusPending, nil); err != nil {
+		return err
+	}
+	go s.runAnalysis(uri)
+
+	return nil
+}
+
+func (s *apiServer) runAnalysis(uri string) {
+	// FIXME save can fail, need to handle it somehow
+	fn := func() error {
+		if err := validateRepo(uri); err != nil {
+			return err
+		}
+
+		s.st.Save(uri, nil, statusCloning, nil)
+
+		repo, err := memClone(uri)
+		if err != nil {
+			return err
+		}
+
+		s.st.Save(uri, nil, statusAnalyzing, nil)
+
+		res, err := herculesRun(repo)
+		if err != nil {
+			return err
+		}
+
+		s.st.Save(uri, res, statusFinished, nil)
+
+		return nil
+	}
+
+	if err := fn(); err != nil {
+		s.st.Save(uri, nil, statusError, err)
+	}
 }
 
 func (s *apiServer) handleError(w http.ResponseWriter, err error) {
@@ -521,6 +596,14 @@ func (s *apiServer) handleError(w http.ResponseWriter, err error) {
 	}
 
 	renderJSON(w, res)
+}
+
+type statusResponse struct {
+	Status repoStatus `json:"status"`
+}
+
+func newStatusResponse(status repoStatus) statusResponse {
+	return statusResponse{status}
 }
 
 type errResponse struct {
