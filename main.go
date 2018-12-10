@@ -64,7 +64,7 @@ func main() {
 	r.Mount("/", static.Router())
 	r.Mount("/api/", api.Router())
 
-	fmt.Println("running...")
+	log.Println("running...")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
