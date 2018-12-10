@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	flags "github.com/jessevdk/go-flags"
 	goCache "github.com/patrickmn/go-cache"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
@@ -21,8 +22,35 @@ import (
 	"gopkg.in/src-d/hercules.v5/leaves"
 )
 
+type options struct {
+	Storage string `short:"s" long:"storage" env:"STORAGE" default:"memory" choice:"memory" choice:"disk" description:"store backend for analysis results"`
+	DiskDir string `long:"disk-storage-dir" env:"DISK_STORAGE_DIR" default:"/tmp" description:"directory for disk storage"`
+}
+
+var opts options
+var parser = flags.NewParser(&opts, flags.Default)
+
 func main() {
-	storage := newCachedStorage()
+	if _, err := parser.Parse(); err != nil {
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+			os.Exit(0)
+		} else {
+			os.Exit(1)
+		}
+	}
+
+	var storage storage
+	switch opts.Storage {
+	case "memory":
+		storage = newCachedStorage()
+	case "disk":
+		var err error
+		storage, err = newDiskStorage(opts.DiskDir)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	static := newStaticServer()
 	api := newAPIServer(storage)
 

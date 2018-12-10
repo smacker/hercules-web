@@ -9,6 +9,7 @@ require (
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jeffail/tunny v0.0.0-20180304204616-59cfa8fcb19f // indirect
+	github.com/jessevdk/go-flags v1.4.0
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mattn/go-runewidth v0.0.0-20170510074858-97311d9f7767 // indirect
@@ -17,7 +18,7 @@ require (
 	github.com/neurosnap/sentences v1.0.6 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/spf13/cobra v0.0.3 // indirect
-	github.com/spf13/pflag v1.0.3 // indirect
+	github.com/spf13/pflag v1.0.3
 	github.com/tensorflow/tensorflow v0.0.0-20180308082300-f73d7c90ed05 // indirect
 	github.com/toqueteos/trie v0.0.0-20150530104557-56fed4a05683 // indirect
 	golang.org/x/sys v0.0.0-20181024145615-5cd93ef61a7c // indirect
