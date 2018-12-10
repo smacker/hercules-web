@@ -23,8 +23,9 @@ import (
 )
 
 type options struct {
-	Storage string `short:"s" long:"storage" env:"STORAGE" default:"memory" choice:"memory" choice:"disk" description:"store backend for analysis results"`
-	DiskDir string `long:"disk-storage-dir" env:"DISK_STORAGE_DIR" default:"/tmp" description:"directory for disk storage"`
+	Storage       string `short:"s" long:"storage" env:"STORAGE" default:"memory" choice:"memory" choice:"disk" description:"store backend for analysis results"`
+	DiskDir       string `long:"disk-storage-dir" env:"DISK_STORAGE_DIR" default:"/tmp" description:"directory for disk storage"`
+	RepoSizeLimit int    `long:"repository-size-limit" env:"REPOSITORY_SIZE_LIMIT" default:"102400" description:"reject repositories bigger than (kb)"`
 }
 
 var opts options
@@ -135,8 +136,6 @@ func herculesRun(repository *git.Repository) (*herculesResponse, error) {
 	}, nil
 }
 
-const repoSizeLimit = 102400 // kb
-
 type validationError struct {
 	msg string
 }
@@ -176,7 +175,7 @@ func validateRepo(uri string) error {
 	if r.Size == 0 {
 		return newValidationError("incorrect repository")
 	}
-	if r.Size > repoSizeLimit {
+	if r.Size > opts.RepoSizeLimit {
 		return newValidationError("repository is too big")
 	}
 	return nil
