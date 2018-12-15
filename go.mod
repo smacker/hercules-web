@@ -31,7 +31,7 @@ require (
 	gopkg.in/src-d/enry.v1 v1.6.1 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.7.1
-	gopkg.in/src-d/hercules.v5 v5.0.0-20181025205605-7af1d6671e49
+	gopkg.in/src-d/hercules.v5 v5.0.0-20181214091837-3530ffb8f287
 	gopkg.in/toqueteos/substring.v1 v1.0.2 // indirect
 	gopkg.in/vmarkovtsev/BiDiSentiment.v1 v1.0.0-20180311115214-75f168ddf161 // indirect
 	gopkg.in/yaml.v2 v2.2.1 // indirect
