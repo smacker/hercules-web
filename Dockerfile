@@ -1,10 +1,8 @@
-FROM golang:1.11-alpine3.8
+FROM golang:1.11-alpine3.9
 
 # base deps
 RUN apk --update upgrade && \
-  apk add --no-cache make git curl ca-certificates bash \
-  build-base libxml2-dev nodejs nodejs-npm && \
-  npm install -g yarn
+  apk add --no-cache make ca-certificates git build-base nodejs yarn
 
 ADD . /hercules-web
 WORKDIR /hercules-web
@@ -17,8 +15,8 @@ RUN go get && \
 RUN yarn build && \
   go build -o herculesweb .
 
-FROM alpine:3.8
-RUN apk --no-cache add ca-certificates libxml2 libgcc libstdc++
+FROM alpine:3.9
+RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 COPY --from=0 /hercules-web/dist ./dist
 COPY --from=0 /hercules-web/herculesweb .
