@@ -21,7 +21,7 @@ Open http://localhost:8080
 yarn
 
 # serve with hot reload at localhost:8081
-yarn dev
+yarn serve
 
 # build dist files
 yarn build
