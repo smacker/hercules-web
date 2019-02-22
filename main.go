@@ -18,8 +18,8 @@ import (
 	goCache "github.com/patrickmn/go-cache"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/storage/memory"
-	hercules "gopkg.in/src-d/hercules.v5"
-	"gopkg.in/src-d/hercules.v5/leaves"
+	hercules "gopkg.in/src-d/hercules.v8"
+	"gopkg.in/src-d/hercules.v8/leaves"
 )
 
 type options struct {

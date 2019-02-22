@@ -7,6 +7,7 @@ require (
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/go-chi/chi v3.3.3+incompatible
 	github.com/gogo/protobuf v1.1.1 // indirect
+	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jeffail/tunny v0.0.0-20180304204616-59cfa8fcb19f // indirect
 	github.com/jessevdk/go-flags v1.4.0
@@ -16,6 +17,7 @@ require (
 	github.com/mcuadros/go-lookup v0.0.0-20171110082742-5650f26be767 // indirect
 	github.com/minio/highwayhash v0.0.0-20180501080913-85fc8a2dacad // indirect
 	github.com/neurosnap/sentences v1.0.6 // indirect
+	github.com/opentracing/opentracing-go v1.0.2 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/spf13/cobra v0.0.3 // indirect
 	github.com/spf13/pflag v1.0.3
@@ -24,14 +26,16 @@ require (
 	golang.org/x/sys v0.0.0-20181024145615-5cd93ef61a7c // indirect
 	google.golang.org/grpc v1.16.0 // indirect
 	gopkg.in/bblfsh/client-go.v2 v2.8.8 // indirect
+	gopkg.in/bblfsh/client-go.v3 v3.2.0 // indirect
 	gopkg.in/bblfsh/sdk.v1 v1.16.1 // indirect
-	gopkg.in/bblfsh/sdk.v2 v2.3.0 // indirect
+	gopkg.in/bblfsh/sdk.v2 v2.14.2 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.20 // indirect
 	gopkg.in/neurosnap/sentences.v1 v1.0.6 // indirect
 	gopkg.in/src-d/enry.v1 v1.6.1 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.7.1
 	gopkg.in/src-d/hercules.v5 v5.0.0-20181214091837-3530ffb8f287
+	gopkg.in/src-d/hercules.v8 v8.0.2
 	gopkg.in/toqueteos/substring.v1 v1.0.2 // indirect
 	gopkg.in/vmarkovtsev/BiDiSentiment.v1 v1.0.0-20180311115214-75f168ddf161 // indirect
 	gopkg.in/yaml.v2 v2.2.1 // indirect
